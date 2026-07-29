@@ -1,0 +1,78 @@
+{
+  "app": {
+    "title": "AI Provider Finance",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "title": "AI Provider Finance — Demo",
+    "subtitle": "AI provider abstraction pattern (Gemini/local), verified per transaction via the <code>ai_provider</code> field.",
+    "emailPlaceholder": "email",
+    "passwordPlaceholder": "password",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "noAccount": "Don't have an account?",
+    "createOne": "Create one",
+    "haveAccount": "Already have an account?",
+    "forgotPassword": "Forgot your password?",
+    "forgotTitle": "Reset password",
+    "sendLink": "Send link",
+    "linkSent": "Check your email — we sent you a link to reset your password.",
+    "backToSignIn": "Back to sign in",
+    "newPasswordTitle": "New password",
+    "newPasswordPlaceholder": "New password (min. 6 characters)",
+    "updatePassword": "Save password",
+    "passwordUpdated": "Password updated. Redirecting…"
+  },
+  "transactionForm": {
+    "title": "New transaction",
+    "descriptionPlaceholder": "Description (e.g. Lunch at work)",
+    "amountPlaceholder": "Amount",
+    "expense": "Expense",
+    "income": "Income",
+    "date": "Date",
+    "classifying": "Classifying with AI…",
+    "submit": "Create and classify",
+    "created": "✓ Transaction saved"
+  },
+  "transactionList": {
+    "title": "Transactions",
+    "date": "Date",
+    "description": "Description",
+    "category": "Category",
+    "amount": "Amount",
+    "classifiedBy": "Classified by",
+    "empty": "No transactions yet."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "monthLabel": "Month",
+    "byCategory": "Expense by category (selected month)",
+    "byIncomeCategory": "Income by category (selected month)",
+    "byMonth": "Expense by month (all-time)",
+    "noData": "No data yet."
+  },
+  "badge": {
+    "manual": "manual"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "newTransaction": "New",
+    "menu": "Menu"
+  },
+  "language": {
+    "label": "Language",
+    "es": "ES",
+    "en": "EN"
+  },
+  "categories": {
+    "Alimentación": "Food",
+    "Transporte": "Transport",
+    "Vivienda": "Housing",
+    "Salud": "Health",
+    "Entretenimiento": "Entertainment",
+    "Educación": "Education",
+    "Ahorro/Inversión": "Savings/Investment",
+    "Otros": "Other"
+  }
+}

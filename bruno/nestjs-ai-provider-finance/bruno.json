@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "nestjs-ai-provider-finance",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

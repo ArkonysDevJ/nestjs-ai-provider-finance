@@ -1,0 +1,47 @@
+meta {
+  name: Reclassify Transaction
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/transactions/{{select_transaction_id}}/reclassify
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "categoryId": "{{manual_category_id}}"
+  }
+}
+
+docs {
+  select_transaction_id is MANUAL selection, on purpose -- no script
+  overwrites it. last_transaction_id (set by Create Transaction)
+  always points to the most recently created one, which isn't
+  necessarily the one you want to reclassify. Copy the id of the
+  transaction you want to correct (see "List Transactions") into
+  select_transaction_id, and a valid categoryId (see "List
+  Categories") into manual_category_id.
+
+  Verify that ai_classified flips to false and ai_provider to null --
+  that's what separates a manual reclassification from an automatic
+  one.
+
+  manual_category_id must apply to the target transaction's type
+  (applies_to = 'both' or matches its type) -- the backend rejects a
+  mismatch (e.g. an expense category on an income transaction) with
+  400 Bad Request. See supabase/migrations/003_category_types.sql.
+}
+
+assert {
+  res.status: eq 201
+  res.body.ai_classified: eq false
+  res.body.ai_provider: eq null
+}

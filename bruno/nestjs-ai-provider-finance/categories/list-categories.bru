@@ -1,0 +1,26 @@
+meta {
+  name: List Categories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/categories
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body: isArray
+}
+
+docs {
+  Optional ?type=income|expense filters to categories where
+  applies_to matches that type or is "both" (the universal fallback,
+  "Otros"). Try {{baseUrl}}/categories?type=income to see only
+  Salario/Ingreso extra/Reembolso/Otros.
+}

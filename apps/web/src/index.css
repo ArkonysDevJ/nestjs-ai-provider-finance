@@ -1,0 +1,535 @@
+/* ════════════════════════════════════════════════════════════════════
+   index.css — global styles
+   All colors are CSS variables so dark mode only overrides the
+   variables, not individual rules. Add new color values here first,
+   never hardcode hex values in component rules below.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  /* Both schemes declared so native UI elements (date pickers,
+     selects, scrollbars) also adapt to the OS preference. */
+  color-scheme: light dark;
+
+  /* ─── Light mode tokens ─────────────────────────────────────── */
+
+  /* Backgrounds */
+  --bg:             #f5f6f8;
+  --surface:        #ffffff;
+  --surface-hover:  #f5f6f8;
+  --surface-active: #f0f1f3;
+
+  /* Text */
+  --text-1: #1a1c20;   /* primary */
+  --text-2: #4b5563;   /* secondary (labels, nav links) */
+  --text-3: #8b909a;   /* tertiary (email, data-label attrs) */
+
+  /* Borders */
+  --border:       #e2e4e9;   /* nav, card edges */
+  --border-light: #eceef1;   /* table rows, subtle dividers */
+  --border-input: #d0d3d9;   /* inputs, selects, ghost buttons */
+
+  /* Semantic */
+  --color-error:   #b91c1c;
+  --color-success: #16a34a;
+
+  /* Charts */
+  --bar-expense: #1a56db;
+  --bar-income:  #16a34a;
+  --bar-track:   #eceef1;
+
+  /* Badges */
+  --badge-gemini-bg:   #e6f0ff;
+  --badge-gemini-text: #1a56db;
+  --badge-local-bg:    #fef3e0;
+  --badge-local-text:  #a35a00;
+  --badge-manual-bg:   #eef0f3;
+  --badge-manual-text: #4b5563;
+
+  /* Primary CTA button */
+  --btn-bg:   #1a1c20;
+  --btn-text: #ffffff;
+}
+
+/* ─── Dark mode token overrides ──────────────────────────────────── */
+/* Triggered by the OS/browser preference — no manual toggle in V1.
+   Only the tokens change; every rule below stays identical.          */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:             #111111;
+    --surface:        #1e1e1e;
+    --surface-hover:  #2a2a2a;
+    --surface-active: #252525;
+
+    --text-1: #f0f0f0;
+    --text-2: #9ca3af;
+    --text-3: #6b7280;
+
+    --border:       #2e2e2e;
+    --border-light: #262626;
+    --border-input: #3a3a3a;
+
+    --color-error:   #f87171;
+    --color-success: #4ade80;
+
+    --bar-expense: #4a7fdb;
+    --bar-income:  #4ade80;
+    --bar-track:   #2a2a2a;
+
+    --badge-gemini-bg:   #1e3a5f;
+    --badge-gemini-text: #93c5fd;
+    --badge-local-bg:    #3a2a10;
+    --badge-local-text:  #fbbf24;
+    --badge-manual-bg:   #2a2a2a;
+    --badge-manual-text: #9ca3af;
+
+    /* Invert CTA in dark mode: light button on dark background */
+    --btn-bg:   #f0f0f0;
+    --btn-text: #111111;
+  }
+}
+
+/* ─── Base ───────────────────────────────────────────────────────── */
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-1);
+}
+
+/* ─── Navigation header ──────────────────────────────────────────── */
+
+.app-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-nav-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.app-nav-logo {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-1);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.app-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.app-nav-links a {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-2);
+  text-decoration: none;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.app-nav-links a:hover {
+  background: var(--surface-hover);
+  color: var(--text-1);
+}
+
+.app-nav-links a.nav-active {
+  background: var(--surface-active);
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.app-nav-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 0.3rem;
+  flex-shrink: 0;
+}
+
+.app-nav-user {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.app-nav-signout {
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border-input);
+  font-size: 0.8rem;
+  padding: 0.3rem 0.65rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.app-nav-signout:hover {
+  background: var(--surface-hover);
+  color: var(--text-1);
+}
+
+.app-nav-hamburger {
+  display: none; /* desktop: hidden */
+  background: var(--surface);
+  color: var(--text-1);
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ─── Main content shell ─────────────────────────────────────────── */
+
+.app-shell {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+/* Opción A — center the 'new transaction' view vertically so the
+   background gap is distributed above and below the card, not
+   pooled entirely at the bottom of the viewport.
+   Applied only when view === 'new' via a conditional class in App. */
+.app-shell--centered {
+  min-height: calc(100vh - 52px); /* full viewport minus sticky nav */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ─── Badges ─────────────────────────────────────────────────────── */
+
+.badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-gemini { background: var(--badge-gemini-bg); color: var(--badge-gemini-text); }
+.badge-local  { background: var(--badge-local-bg);  color: var(--badge-local-text);  }
+.badge-manual { background: var(--badge-manual-bg); color: var(--badge-manual-text); }
+
+/* ─── Forms ──────────────────────────────────────────────────────── */
+
+form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+/* Shared sizing for all interactive elements */
+input, select, button {
+  font-size: 0.95rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-input);
+}
+
+/* Inputs and selects need explicit bg/color for dark mode — browsers
+   don't always inherit body color on form elements. */
+input, select {
+  background: var(--surface);
+  color: var(--text-1);
+}
+
+button {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Table ──────────────────────────────────────────────────────── */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* ─── Date / month pickers ───────────────────────────────────────── */
+
+.form-date-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-date-row label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.form-date-row input[type="date"] {
+  flex: 1;
+}
+
+.dashboard-month-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-month-picker label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* ─── Bar charts (Dashboard) ─────────────────────────────────────── */
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 90px;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.bar-track {
+  background: var(--bar-track);
+  border-radius: 4px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.bar-fill          { background: var(--bar-expense); height: 100%; }
+.bar-fill--income  { background: var(--bar-income); }
+
+/* ─── Feedback text ──────────────────────────────────────────────── */
+
+.error-text {
+  color: var(--color-error);
+  font-size: 0.85rem;
+}
+
+.success-text {
+  color: var(--color-success);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ─── Language switcher ──────────────────────────────────────────── */
+
+.language-switcher {
+  display: inline-flex;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.language-switcher button {
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border: none;
+  border-radius: 0;
+}
+
+.language-switcher button.lang-active {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+}
+
+/* ─── Auth screen ────────────────────────────────────────────────── */
+
+.auth-lang-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Mobile — primary use case: this app runs mostly on phones
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  /* Navigation: hamburger visible, links collapse to dropdown */
+  .app-nav-hamburger {
+    display: block;
+  }
+
+  .app-nav-links {
+    display: none;
+    position: absolute;
+    top: 52px; /* matches .app-nav-inner height */
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .app-nav-links.app-nav-links--open {
+    display: flex;
+  }
+
+  .app-nav-links a {
+    width: 100%;
+    padding: 0.55rem 0.4rem;
+    font-size: 0.95rem;
+  }
+
+  .app-nav-divider {
+    /* Vertical bar → horizontal rule in stacked layout */
+    width: 100%;
+    height: 1px;
+    margin: 0.35rem 0;
+  }
+
+  .app-nav-user {
+    max-width: 100%;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .app-nav-signout {
+    width: 100%;
+    text-align: center;
+    margin-top: 0.25rem;
+  }
+
+  /* Shell */
+  .app-shell {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .app-shell--centered {
+    min-height: calc(100vh - 52px);
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .card {
+    padding: 1.1rem 1.25rem;
+  }
+
+  input,
+  select,
+  button {
+    font-size: 1rem;
+    padding: 0.6rem 0.7rem;
+  }
+
+  /* Bar chart label column narrower on small screens */
+  .bar-row {
+    grid-template-columns: 84px 1fr 60px;
+    font-size: 0.78rem;
+    gap: 0.35rem;
+  }
+
+  /* Card-style table: each row becomes a block with label-above-value
+     layout. data-label attrs on every <td> supply the field name via
+     the ::before pseudo-element. */
+  table,
+  thead,
+  tbody,
+  th,
+  td,
+  tr {
+    display: block;
+    width: 100%;
+  }
+
+  table thead {
+    position: absolute;
+    left: -9999px;
+  }
+
+  tbody tr {
+    /* No horizontal padding: the card parent's 1.25rem handles it.
+       Adding padding here creates a triple-nesting indent that pushes
+       content too far from the left edge. Rows separated by a border
+       instead of a nested box. */
+    border: none;
+    border-bottom: 1px solid var(--border-light);
+    border-radius: 0;
+    padding: 0.75rem 0;
+    margin-bottom: 0;
+  }
+
+  tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  tbody td {
+    display: block;
+    border-bottom: 1px solid var(--border-light);
+    padding: 0.45rem 0;
+  }
+
+  tbody tr td:last-child {
+    border-bottom: none;
+  }
+
+  tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    color: var(--text-3);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.25rem;
+  }
+
+  tbody td select {
+    width: 100%;
+  }
+}

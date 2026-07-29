@@ -1,0 +1,29 @@
+meta {
+  name: Transactions Summary
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/transactions/summary
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.selectedMonth: isDefined
+  res.body.byCategory: isDefined
+  res.body.byMonth: isDefined
+}
+
+docs {
+  Without a ?month=YYYY-MM query param, defaults to the current
+  calendar month -- byCategory is scoped to selectedMonth, byMonth
+  stays the full historical series regardless of the filter. Try
+  {{baseUrl}}/transactions/summary?month=2026-06 to see a different
+  month's category breakdown.
+}

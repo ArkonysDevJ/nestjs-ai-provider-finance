@@ -1,0 +1,78 @@
+{
+  "app": {
+    "title": "AI Provider Finance",
+    "signOut": "Salir"
+  },
+  "auth": {
+    "title": "AI Provider Finance — Demo",
+    "subtitle": "Patrón de abstracción de proveedor de IA (Gemini/local), verificado por transacción vía el campo <code>ai_provider</code>.",
+    "emailPlaceholder": "email",
+    "passwordPlaceholder": "password",
+    "signIn": "Entrar",
+    "signUp": "Crear cuenta",
+    "noAccount": "¿No tienes cuenta?",
+    "createOne": "Crear una",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "forgotTitle": "Recuperar contraseña",
+    "sendLink": "Enviar enlace",
+    "linkSent": "Revisa tu correo — te enviamos un enlace para restablecer tu contraseña.",
+    "backToSignIn": "Volver al inicio de sesión",
+    "newPasswordTitle": "Nueva contraseña",
+    "newPasswordPlaceholder": "Nueva contraseña (mín. 6 caracteres)",
+    "updatePassword": "Guardar contraseña",
+    "passwordUpdated": "Contraseña actualizada. Redirigiendo…"
+  },
+  "transactionForm": {
+    "title": "Nueva transacción",
+    "descriptionPlaceholder": "Descripción (ej. Almuerzo en el trabajo)",
+    "amountPlaceholder": "Monto",
+    "expense": "Gasto",
+    "income": "Ingreso",
+    "date": "Fecha",
+    "classifying": "Clasificando con IA…",
+    "submit": "Crear y clasificar",
+    "created": "✓ Transacción guardada"
+  },
+  "transactionList": {
+    "title": "Transacciones",
+    "date": "Fecha",
+    "description": "Descripción",
+    "category": "Categoría",
+    "amount": "Monto",
+    "classifiedBy": "Clasificado por",
+    "empty": "Sin transacciones todavía."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "monthLabel": "Mes",
+    "byCategory": "Gasto por categoría (mes seleccionado)",
+    "byIncomeCategory": "Ingreso por categoría (mes seleccionado)",
+    "byMonth": "Gasto por mes (histórico)",
+    "noData": "Sin datos aún."
+  },
+  "badge": {
+    "manual": "manual"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transacciones",
+    "newTransaction": "Nueva",
+    "menu": "Menú"
+  },
+  "language": {
+    "label": "Idioma",
+    "es": "ES",
+    "en": "EN"
+  },
+  "categories": {
+    "Alimentación": "Alimentación",
+    "Transporte": "Transporte",
+    "Vivienda": "Vivienda",
+    "Salud": "Salud",
+    "Entretenimiento": "Entretenimiento",
+    "Educación": "Educación",
+    "Ahorro/Inversión": "Ahorro/Inversión",
+    "Otros": "Otros"
+  }
+}

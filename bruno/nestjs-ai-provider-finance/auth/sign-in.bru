@@ -1,0 +1,46 @@
+meta {
+  name: Sign In (Supabase)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{supabaseUrl}}/auth/v1/token?grant_type=password
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{demoEmail}}",
+    "password": "{{demoPassword}}"
+  }
+}
+
+vars:pre-request {
+  demoEmail: demo@example.com
+  demoPassword: demo1234
+}
+
+script:post-response {
+  if (res.body && res.body.access_token) {
+    bru.setVar("access_token", res.body.access_token);
+  }
+}
+
+docs {
+  Authenticates directly against Supabase Auth (not the backend --
+  the backend never issues tokens, it only validates them). Saves
+  access_token to a collection variable so the rest of the requests
+  can use it as a Bearer token.
+
+  Requires a demo user already created in Supabase Auth (Dashboard →
+  Authentication → Users → Add user, or manual sign-up from the
+  frontend). Document the demo credentials in the README once
+  created -- see Definition of Done #5 in the brief.
+}

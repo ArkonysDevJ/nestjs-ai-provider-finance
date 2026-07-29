@@ -141,3 +141,9 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# finance-classifier-mcp (Python)
+finance-classifier-mcp/venv/
+finance-classifier-mcp/.venv/
+finance-classifier-mcp/__pycache__/
+*.pyc

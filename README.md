@@ -8,7 +8,7 @@ Most tutorials wire an AI backend directly into application logic — one provid
 
 ```
 AI_PROVIDER=gemini   → GeminiProvider   (production)
-AI_PROVIDER=local    → LocalProvider    (development, via FastMCP over local hardware)
+AI_PROVIDER=local    → LocalProvider    (development, real MCP client over local hardware)
 ```
 
 Both implementations satisfy the same contract. Switching providers is a single environment variable — no code change, no redeploy of business logic.
@@ -28,30 +28,124 @@ AI SDKs change fast, pricing models shift, and rate limits vary by provider. An 
 
 ## Architecture
 
+npm workspaces monorepo — backend and frontend are symmetric siblings, not an afterthought bolted onto the API:
+
 ```
-src/
-├── ai/
-│   ├── ai-provider.interface.ts   # The contract both implementations satisfy
-│   ├── gemini.provider.ts         # Production implementation
-│   ├── local.provider.ts          # Development implementation (FastMCP)
-│   └── ai-provider.factory.ts     # Resolves the active provider from env
-├── transactions/
-│   ├── transactions.module.ts
-│   ├── transactions.service.ts    # Calls AIProvider, persists ai_provider field
-│   └── entities/transaction.entity.ts
-└── ...
+apps/
+├── api/                              # NestJS backend
+│   └── src/
+│       ├── ai/
+│       │   ├── ai-provider.interface.ts   # The contract both implementations satisfy
+│       │   ├── gemini.provider.ts         # Production implementation
+│       │   ├── local.provider.ts          # Development implementation (real MCP client)
+│       │   └── ai-provider.factory.ts     # Resolves the active provider from env
+│       ├── transactions/
+│       │   ├── transactions.module.ts
+│       │   ├── transactions.service.ts    # Calls AIProvider, persists ai_provider field
+│       │   └── entities/transaction.entity.ts
+│       ├── categories/
+│       └── common/guards/            # Standard Supabase JWT guard (no vendor lock-in)
+└── web/                               # React + Vite dashboard
+    └── src/
+
+supabase/migrations/                   # SQL schema, applied via Supabase CLI
+bruno/                                  # API collection, tested against a live Supabase project
+finance-classifier-mcp/                 # Reference MCP server backing AI_PROVIDER=local
+                                         # (Python + Ollama; real MCP over streamable-http,
+                                         # not a plain REST mock)
 ```
+
+## Getting started
+
+Requires Node 20+. This is an npm workspaces monorepo — one `npm install` at the root installs both apps.
+
+```bash
+npm install
+
+# apps/api/.env  (copy from apps/api/.env.example)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-or-publishable-key
+AI_PROVIDER=gemini            # or "local" for the FastMCP dev provider
+GEMINI_API_KEY=your-gemini-api-key
+
+# apps/web/.env  (copy from apps/web/.env.example)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
+VITE_API_URL=http://localhost:3000/v1
+```
+
+Apply the schema via the Supabase CLI (no manual SQL editor step):
+
+```bash
+npx supabase login
+npx supabase link --project-ref your-project-ref
+npx supabase db push
+```
+
+This runs everything in `supabase/migrations/` (categories seed + transactions + RLS policies) against your linked project. `npx supabase migration list` shows what's applied.
+
+```bash
+npm run dev:api    # NestJS on :3000
+npm run dev:web    # Vite on :5173
+```
+
+To run with `AI_PROVIDER=local` instead of Gemini, `finance-classifier-mcp/` is a real MCP server (streamable-http, not a REST mock) backed by a local Ollama model:
+
+```bash
+cd finance-classifier-mcp
+python -m venv venv && venv\Scripts\activate   # or source venv/bin/activate
+pip install -r requirements.txt
+python server.py    # serves http://0.0.0.0:8765/mcp
+```
+
+Requires [Ollama](https://ollama.com/) running locally with a model pulled (default: `qwen2.5:3b`). Set `LOCAL_AI_ENDPOINT=http://localhost:8765/mcp` in `apps/api/.env`, then run `npm run dev:api:local` instead of `dev:api` — it overrides `AI_PROVIDER` for that process without touching `.env` (there's a `dev:api:gemini` counterpart too, for switching back without editing files).
+
+**VRAM-constrained GPUs (4GB and under):** `finance-classifier-mcp` caps `num_ctx` to 2048 in its Ollama request. Context: on a GTX 1650 (4GB), loading `qwen2.5:3b` failed once with `cudaMalloc failed: out of memory` even with nothing else on the GPU. It worked on the next attempt, after both confirming Ollama could load the model via `ollama run` directly *and* adding the `num_ctx` cap — those two things happened together, so which one actually fixed it isn't isolated. The cap costs nothing either way (classification needs almost no context) and is kept as a reasonable precaution, not a confirmed root-cause fix. If you hit the same OOM on other hardware, check `nvidia-smi` / Task Manager for VRAM usage — and don't assume the cap alone will save you.
+
+## API
+
+All endpoints require `Authorization: Bearer <supabase-jwt>` and live under `/v1`.
+
+| Method | Path                          | Description                                      |
+|--------|-------------------------------|---------------------------------------------------|
+| GET    | `/categories?type=expense\|income` | The fixed catalog (11 categories total), optionally filtered to what applies to that transaction type |
+| POST   | `/transactions`                | Create a transaction; AI classifies it inline, from the category list applicable to its type |
+| GET    | `/transactions`                | List the authenticated user's transactions          |
+| POST   | `/transactions/:id/reclassify` | Manual override; clears `ai_classified`/`ai_provider`; rejects a category whose `applies_to` doesn't match the transaction's type (400) |
+| GET    | `/transactions/summary?month=YYYY-MM` | `byCategory` scoped to that month (default: current month); `byMonth` is the full historical series, unscoped |
+
+The category catalog is type-aware (`applies_to`: `expense` \| `income` \| `both`, see `supabase/migrations/003_category_types.sql`): 7 expense categories, 3 income categories (Salario, Ingreso extra, Reembolso), and "Otros" as the universal fallback for either. This isn't cosmetic — it's enforced on both sides: the AI prompt only offers the categories valid for the transaction's type (`categoryNamesForType()` in `ai-provider.interface.ts`), and `POST /transactions/:id/reclassify` rejects a mismatched category server-side even if a client bypasses the UI filter.
+
+## Testing
+
+A [Bruno](https://www.usebruno.com/) collection lives in `bruno/nestjs-ai-provider-finance/`, run against a real Supabase project rather than mocks — "Sign In" authenticates directly against Supabase Auth, the rest of the requests carry that token against the local API.
+
+## Gemini vs. local — a real comparison, not a claim
+
+7 attempts through `AI_PROVIDER=local` against a live GTX 1650 + Ollama setup: 2 failed on infrastructure (a connection refused because Ollama wasn't running, then a VRAM OOM — both diagnosed and documented above, neither a code bug), 5 produced real classifications end-to-end through the MCP server.
+
+The clearest data point: the exact same transaction, run through both providers back to back.
+
+| Description | Gemini | Local (qwen2.5:3b) |
+|---|---|---|
+| "Suscripción mensual al gimnasio" | Salud | Vivienda |
+
+Same input, two different — both individually defensible — answers, persisted per-row via `ai_provider`. The local model latched onto "mensual"/recurring-bill phrasing (the same pattern that correctly classifies "Pago mensual de línea móvil" as Vivienda) instead of parsing the subject. That's not a bug to fix; it's the actual, measured quality trade-off between a production API and a 3B model running on a 4GB card — which is the whole point of persisting `ai_provider`: you can see this in the data, not just take it on faith.
+
+Other local classifications observed: "Cita pediátrica" → Salud, "Uber al hospital" → Transporte (prioritized the ride over the destination's purpose), "Curso online de nutrición" → Educación (prioritized the format over the topic), "Compra de útiles escolares" → Educación.
 
 ## What this project demonstrates
 
 - Interface-driven design for a volatile dependency (AI providers)
 - Environment-based dependency injection without a DI framework workaround
 - Empirical, data-backed verification of an architectural claim (not just a README assertion)
-- A working, deployed application — not just a design exercise
+- A working, testable application (backend, frontend, and API tests against a real database) — not just a design exercise
+- Both providers verified end-to-end against real infrastructure (Gemini API and a local Ollama model through a real MCP server, not a REST stub) — see "Gemini vs. local" above for the measured quality trade-off, not just the architectural claim
+- Full ES/EN UI localization (`react-i18next`) with a visible language switcher, choice persisted in `localStorage`. **Spanish is the default, English is the opt-in toggle** — this is a deliberate choice, not an oversight: this project's real initial market is Latin America, so the UI defaults to the language its actual first users speak. The 8 transaction categories and the `ai_provider` values are never translated — they're persisted/compared domain data, not UI copy.
 
 ## Status
 
-🚧 Active development — first commit as of July 2026.
+🚧 Active development — first commit as of July 2026. Backend, frontend, schema, and both `AI_PROVIDER` paths (Gemini and local/MCP) are verified end-to-end; public deploy and demo credentials are pending and will be added here once live.
 
 ## License
 

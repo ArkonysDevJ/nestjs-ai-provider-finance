@@ -1,0 +1,18 @@
+meta {
+  name: List Transactions
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/transactions
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+assert {
+  res.status: eq 200
+}
