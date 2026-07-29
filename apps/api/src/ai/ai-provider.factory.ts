@@ -1,9 +1,15 @@
 // src/ai/ai-provider.factory.ts
 // [F-ID: SRC-AI-FACTORY-01]
-// @version 1.0.0
-// @changelog 1.0.0 — Resolves the active AIProvider implementation
-//   from the AI_PROVIDER env var. Single selection point -- no
-//   consumer decides the provider, it only consumes it.
+// @version 1.0.0 — SUPERSEDED by ai.module.ts v2.0.0
+//
+// This file is no longer imported. The conditional selection logic was
+// moved into ai.module.ts so that instantiation (not just selection) is
+// conditional: the old pattern registered GeminiProvider AND LocalProvider
+// as providers and let the factory choose between two already-constructed
+// instances -- LocalProvider's constructor would throw at startup if
+// LOCAL_AI_ENDPOINT was not set (e.g. production with AI_PROVIDER=gemini).
+//
+// Kept for reference only. Safe to delete in a future cleanup pass.
 
 import { ConfigService } from '@nestjs/config';
 import { FactoryProvider } from '@nestjs/common';
