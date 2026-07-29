@@ -143,9 +143,19 @@ Other local classifications observed: "Cita pediátrica" → Salud, "Uber al hos
 - Both providers verified end-to-end against real infrastructure (Gemini API and a local Ollama model through a real MCP server, not a REST stub) — see "Gemini vs. local" above for the measured quality trade-off, not just the architectural claim
 - Full ES/EN UI localization (`react-i18next`) with a visible language switcher, choice persisted in `localStorage`. **Spanish is the default, English is the opt-in toggle** — this is a deliberate choice, not an oversight: this project's real initial market is Latin America, so the UI defaults to the language its actual first users speak. The 8 transaction categories and the `ai_provider` values are never translated — they're persisted/compared domain data, not UI copy.
 
+## Live demo
+
+**Frontend:** https://nestjs-ai-provider-finance-web.vercel.app
+**Backend:** https://nestjs-ai-provider-finance-production.up.railway.app
+
+Demo credentials (read-only account, no real data):
+
+- Email: `demo@arkonysdevj.com`
+- Password: `arkonys2026`
+
 ## Status
 
-🚧 Active development — first commit as of July 2026. Backend, frontend, schema, and both `AI_PROVIDER` paths (Gemini and local/MCP) are verified end-to-end; public deploy and demo credentials are pending and will be added here once live.
+✅ Deployed — July 2026. Backend on Railway, frontend on Vercel. Both `AI_PROVIDER` paths (Gemini and local/MCP) verified end-to-end. See "Live demo" above for credentials.
 
 ## License
 
