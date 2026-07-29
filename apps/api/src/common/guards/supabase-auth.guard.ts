@@ -70,10 +70,14 @@ class NoopWebSocket {
 }
 
 // Shared options applied to every createClient() call in this guard.
+// transport: NoopWebSocket as any — avoids a TS mismatch between our minimal
+// stub and the full DOM WebSocket instance type that supabase-js expects.
+// The value is never used at runtime (no realtime subscriptions).
 const SUPABASE_BASE_OPTIONS = {
   auth: { persistSession: false, autoRefreshToken: false },
-  realtime: { transport: NoopWebSocket as unknown as typeof WebSocket },
-} as const;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  realtime: { transport: NoopWebSocket as any },
+};
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
