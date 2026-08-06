@@ -1,6 +1,16 @@
 // src/main.ts
 // [F-ID: SRC-MAIN-01]
-// @version 1.0.0
+// @version 1.1.0
+// @changelog 1.1.0 — Removed credentials: true from CORS config. Found
+//            during a security audit pass: this project's frontend never
+//            uses cookies (auth.guard.ts validates a Bearer token, and
+//            lib/api.ts attaches it explicitly on every request via
+//            supabase.auth.getSession() -- session lives in localStorage,
+//            not cookies). credentials: true only matters for cookie/HTTP-
+//            auth cross-origin requests, so it was dead config left over
+//            from bootstrap, not a deliberate choice. origin: true stays --
+//            the public demo frontend does need to be reachable from a
+//            different origin (Vercel) than the API (Railway).
 // @changelog 1.0.0 — Bootstrap Fastify + open CORS for the public demo
 //            (the frontend consumes it from a different origin in deploy).
 
@@ -20,7 +30,6 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors({
     origin: true,
-    credentials: true,
   });
 
   app.useGlobalPipes(

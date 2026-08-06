@@ -1,0 +1,48 @@
+meta {
+  name: 01 - Direct RLS: user A reading user B's transactions via PostgREST
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{supabaseUrl}}/rest/v1/transactions?user_id=eq.{{user_id_b}}&select=*
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{access_token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("PostgREST returns 200, not 401/403", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("row-level security silently filters out user B's transactions", function () {
+    expect(res.getBody()).to.be.an("array").that.is.empty;
+  });
+}
+
+docs {
+  Bypasses the NestJS backend entirely -- hits Supabase PostgREST
+  directly with user A's real JWT and the anon key (the backend never
+  uses service_role either, see supabase-auth.guard.ts, so this is the
+  exact same access path the backend itself uses, not a synthetic
+  worst case). Proves transactions_select_own (001_init_schema.sql)
+  does the isolating on its own, independent of anything the NestJS
+  layer might add on top.
+
+  Run order: 00 Sign In (captures access_token for user A), then
+  Sign In User B (captures user_id_b), then this request.
+
+  Expected: HTTP 200 with an EMPTY array -- not 401/403. RLS doesn't
+  reject the request, it silently removes rows the caller can't see.
+  Companion: 04-direct-rls-own-user-visible, same shape filtered to
+  user A's own id, needed to prove this path isn't just denying
+  everyone.
+}

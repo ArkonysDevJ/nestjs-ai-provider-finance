@@ -1,0 +1,42 @@
+meta {
+  name: 02 - Direct RLS: user A reading their own transactions via PostgREST
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{supabaseUrl}}/rest/v1/transactions?select=*
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{access_token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("PostgREST returns 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("user A's own transactions ARE visible", function () {
+    expect(res.getBody()).to.be.an("array").that.is.not.empty;
+  });
+}
+
+docs {
+  Sanity companion to 03-direct-rls-cross-user-empty: same JWT, same
+  anon-key path, no user_id filter (RLS itself scopes the result to
+  auth.uid() = user_id). Has to return real rows for test 03's empty
+  result to mean anything -- otherwise an empty result in 03 would be
+  equally consistent with "RLS is isolating correctly" and "this
+  direct-PostgREST path is broken/denying everyone".
+
+  Requires user A (the account behind {{access_token}}) to already
+  have at least one transaction -- create one via POST /transactions
+  through the backend first if running against a fresh account.
+}

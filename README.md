@@ -116,9 +116,17 @@ All endpoints require `Authorization: Bearer <supabase-jwt>` and live under `/v1
 
 The category catalog is type-aware (`applies_to`: `expense` \| `income` \| `both`, see `supabase/migrations/003_category_types.sql`): 7 expense categories, 3 income categories (Salario, Ingreso extra, Reembolso), and "Otros" as the universal fallback for either. This isn't cosmetic — it's enforced on both sides: the AI prompt only offers the categories valid for the transaction's type (`categoryNamesForType()` in `ai-provider.interface.ts`), and `POST /transactions/:id/reclassify` rejects a mismatched category server-side even if a client bypasses the UI filter.
 
+**Rate limiting on `POST /transactions`:** 20 requests / 5 minutes per authenticated user (`UserThrottlerGuard`), plus a separate 100 requests / 5 minutes per IP across the whole API (global `ThrottlerGuard`, `AppModule`). Two independent layers, not redundant: the per-user limit exists because this endpoint calls the AI provider on every call — Gemini in production, a direct per-request cost — and the account most exposed to it is the public demo login above, not just a theoretical abuse case. Tracking by `user.id` rather than IP avoids penalizing legitimate users behind a shared NAT/proxy, but a per-user limit alone resets to zero for every freshly created account (signup is self-service, direct against Supabase Auth, no gate in this backend) — the per-IP layer closes that specific bypass by bounding the originating IP regardless of how many accounts it authenticates as. Verified end-to-end: 21 consecutive `POST /transactions` calls against the demo account, request 21 returned `429` with a translated, human-readable message in the UI (`transactionForm.rateLimited`) instead of the raw backend response body.
+
 ## Testing
 
-A [Bruno](https://www.usebruno.com/) collection lives in `bruno/nestjs-ai-provider-finance/`, run against a real Supabase project rather than mocks — "Sign In" authenticates directly against Supabase Auth, the rest of the requests carry that token against the local API.
+A [Bruno](https://www.usebruno.com/) collection lives in `bruno/nestjs-ai-provider-finance/`, run against a real Supabase project rather than mocks — `01 - Sign In` authenticates directly against Supabase Auth, the rest of the requests carry that token against the local API. Numbered filenames (`01-`, `02-`...) make run order explicit within each folder, no implicit ordering to guess.
+
+**RLS isolation, verified independently of the application layer:** `security-tests/01-direct-rls-cross-user-empty.bru` and `02-direct-rls-own-user-visible.bru` bypass the NestJS backend entirely and query Supabase's PostgREST API directly with a real user's JWT — proving `transactions_select_own` (the RLS policy in `20260728120000_001_init_schema.sql`) does the isolating on its own, independent of anything the backend might add on top. `01` proves user A gets an empty result querying user B's transactions (`200 []`, not a 401/403 — RLS silently filters rows rather than rejecting the request); `02` is the sanity control, same shape, user A's own transactions, confirming the path isn't just denying everyone.
+
+A separate pgTAP suite (`supabase/tests/database/`) exercises the same RLS surface at the SQL level, independent of both the backend and HTTP: cross-user reads denied, insert/update/delete spoofing of another user's `user_id` denied, and the shared category catalog confirmed genuinely public (control, not a false "everything's blocked" result). Run via `npx supabase start` (local Docker stack) then `npx supabase test db` — never touches the remote project.
+
+Both `FORCE ROW LEVEL SECURITY` (closing the table-owner bypass) and this full negative/adversarial test layer were added after an initial security audit found the original test suite covered only the happy path — a real gap, closed rather than left as accepted debt in a portfolio project meant to demonstrate exactly this kind of rigor.
 
 ## Gemini vs. local — a real comparison, not a claim
 
@@ -141,6 +149,7 @@ Other local classifications observed: "Cita pediátrica" → Salud, "Uber al hos
 - Empirical, data-backed verification of an architectural claim (not just a README assertion)
 - A working, testable application (backend, frontend, and API tests against a real database) — not just a design exercise
 - Both providers verified end-to-end against real infrastructure (Gemini API and a local Ollama model through a real MCP server, not a REST stub) — see "Gemini vs. local" above for the measured quality trade-off, not just the architectural claim
+- RLS isolation proven independently at two layers below the application: direct PostgREST requests with a real JWT (bypassing the backend entirely) and a pgTAP suite at the SQL level — both covering cross-user reads, insert/update/delete authorship spoofing, and a positive control so "isolated" isn't confused with "everything denied". `FORCE ROW LEVEL SECURITY` closes the table-owner bypass on every table. See "Testing" above.
 - Full ES/EN UI localization (`react-i18next`) with a visible language switcher, choice persisted in `localStorage`. **Spanish is the default, English is the opt-in toggle** — this is a deliberate choice, not an oversight: this project's real initial market is Latin America, so the UI defaults to the language its actual first users speak. The 8 transaction categories and the `ai_provider` values are never translated — they're persisted/compared domain data, not UI copy.
 
 ## Live demo
@@ -156,6 +165,8 @@ Demo credentials (read-only account, no real data):
 ## Status
 
 ✅ Deployed — July 2026. Backend on Railway, frontend on Vercel. Both `AI_PROVIDER` paths (Gemini and local/MCP) verified end-to-end. See "Live demo" above for credentials.
+
+✅ Security audit — August 2026. Independent review found the original test suite covered only the happy path, with no negative/adversarial coverage. Closed: `FORCE ROW LEVEL SECURITY` added on `categories`/`transactions`, RLS cross-user isolation proven both via direct PostgREST requests (bypassing the backend) and a pgTAP suite at the SQL level, a dead `credentials: true` CORS flag removed (this project's frontend uses Bearer tokens exclusively, never cookies, so the flag had no effect but was misleading to leave in place), and `POST /transactions` rate-limited per-user and per-IP to bound Gemini API spend (see "API" above). Verified end-to-end, including the freshly-created-account bypass on a naive per-user-only limit.
 
 ## License
 

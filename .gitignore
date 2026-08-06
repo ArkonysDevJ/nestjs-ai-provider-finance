@@ -95,6 +95,10 @@ dist
 # vuepress v2.x temp directory
 .temp
 
+# Supabase CLI local state (which branch/project is currently linked) --
+# machine-local, not meant to be shared across checkouts.
+supabase/.branches/
+
 # Sveltekit cache directory
 .svelte-kit/
 

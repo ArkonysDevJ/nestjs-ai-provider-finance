@@ -65,6 +65,9 @@
     "es": "ES",
     "en": "EN"
   },
+  "errors": {
+    "rateLimited": "Demasiadas solicitudes seguidas. Espera unos minutos e inténtalo de nuevo."
+  },
   "categories": {
     "Alimentación": "Alimentación",
     "Transporte": "Transporte",

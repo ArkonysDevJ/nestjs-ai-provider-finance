@@ -1,0 +1,45 @@
+meta {
+  name: 02 - Sign In User B (Supabase)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{supabaseUrl}}/auth/v1/token?grant_type=password
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{demoEmailB}}",
+    "password": "{{demoPasswordB}}"
+  }
+}
+
+vars:pre-request {
+  demoEmailB: demo-b@example.com
+  demoPasswordB: demo4321
+}
+
+script:post-response {
+  if (res.body && res.body.access_token) {
+    bru.setVar("access_token_b", res.body.access_token);
+    bru.setVar("user_id_b", res.body.user.id);
+  }
+}
+
+docs {
+  Second demo account, used exclusively to prove cross-user isolation
+  in 03-direct-rls-cross-user-empty / 04-direct-rls-own-user-visible.
+  Requires a second Supabase Auth user provisioned in advance (see
+  demoEmailB/demoPasswordB in the environment) -- not created by this
+  request. Also captures the user's own id (user_id_b) so the
+  companion tests can build the ?user_id=eq. filters without hardcoding
+  a UUID in the environment file.
+}

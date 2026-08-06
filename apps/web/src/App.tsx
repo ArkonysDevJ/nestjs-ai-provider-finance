@@ -1,6 +1,18 @@
 // src/App.tsx
 // [F-ID: FE-APP-01]
-// @version 1.9.0
+// @version 1.10.0
+// @changelog 1.10.0 — CreateTransactionForm.handleSubmit now clears
+//   `success` (and cancels any pending successTimer) at the start of
+//   every submit, not just `error`. Found while testing the new
+//   POST /transactions rate limit: submitting again inside the 3s
+//   success-message window right after a prior successful submission,
+//   where this new attempt got throttled (429), showed "✓ Transacción
+//   guardada" and the rate-limit error side by side -- the success
+//   message was a stale leftover from the PREVIOUS submission, not a
+//   true result of the failed one. No transaction was actually created;
+//   the message was simply wrong. Fixed at the source (clear success
+//   before the new attempt resolves) rather than papering over it with
+//   a shorter timer or a z-index hack.
 // @changelog 1.9.0 — Password recovery flow. AuthScreen gains a 'forgot'
 //   mode: enters email, calls supabase.auth.resetPasswordForEmail() with
 //   window.location.origin as redirectTo, shows a "check your email"
@@ -446,6 +458,13 @@ function TransactionForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    // Clear any lingering success state from a previous submission before
+    // this one resolves -- without this, submitting again within the 3s
+    // success-message window (e.g. right after hitting the rate limit)
+    // could show "✓ Transacción guardada" and the new error side by side,
+    // even though this submission actually failed and created nothing.
+    setSuccess(false);
+    if (successTimer.current) clearTimeout(successTimer.current);
     setLoading(true);
     try {
       await api.createTransaction({
@@ -458,7 +477,6 @@ function TransactionForm({ onCreated }: { onCreated: () => void }) {
       setAmount('');
       setOccurredAt(todayLocal()); // reset to today after each submission
       setSuccess(true);
-      if (successTimer.current) clearTimeout(successTimer.current);
       successTimer.current = setTimeout(() => setSuccess(false), 3000);
       onCreated();
     } catch (err) {
