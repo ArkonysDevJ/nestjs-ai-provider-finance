@@ -1,18 +1,23 @@
 // src/health/health.service.ts
 // [F-ID: SRC-HEALTH-SERVICE-01]
-// @version 1.0.0
-// @changelog 1.0.0 — Backs GET /v1/health. Runs a trivial real read
-//   against the public `categories` table using the anon key — no user
-//   JWT, deliberately, since this endpoint is meant to be called by an
-//   unattended scheduler with no session to present. The point isn't
-//   the response body, it's that Supabase logs the request as genuine
+// @version 1.1.0
+// @changelog 1.1.0 — Switched from `.from('categories').select()` to
+//   `.rpc('ping')` (see supabase/migrations/005_health_ping.sql).
+//   The categories query broke in production: the anon key has no
+//   GRANT on categories at all (002_grants.sql only grants
+//   `authenticated`), so every call returned a real 42501 permission
+//   error, surfaced as a 503 on every scheduled ping. `ping()` is a
+//   SECURITY DEFINER function with its own narrow EXECUTE grant to
+//   `anon` — fully decoupled from table permissions, so it can't be
+//   broken by a future grants change the same way.
+// @changelog 1.0.0 — Backs GET /v1/health. No user JWT, deliberately,
+//   since this endpoint is meant to be called by an unattended
+//   scheduler with no session to present. The point isn't the
+//   response body, it's that Supabase logs the request as genuine
 //   database activity: Supabase pauses free-tier projects after ~7
 //   days of low activity, and only requests that actually reach
-//   Postgres count toward that (a dashboard visit or a plain HTTP ping
-//   that never touches the DB doesn't). Reading `categories`
-//   anonymously is safe — its RLS policy is already proven public by
-//   the pgTAP suite (supabase/tests/database/), not a new assumption
-//   introduced here.
+//   Postgres count toward that (a dashboard visit or a plain HTTP
+//   ping that never touches the DB doesn't).
 //
 //   Duplicates the NoopWebSocket stub from SupabaseAuthGuard instead
 //   of sharing it — deliberate, so this endpoint stays fully
@@ -62,10 +67,7 @@ export class HealthService {
   }
 
   async check(): Promise<HealthStatus> {
-    const { error } = await this.supabase
-      .from('categories')
-      .select('id')
-      .limit(1);
+    const { error } = await this.supabase.rpc('ping');
 
     if (error) {
       throw error;
