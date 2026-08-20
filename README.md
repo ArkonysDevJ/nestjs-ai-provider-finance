@@ -1,6 +1,11 @@
 # AI Provider Abstraction Pattern — Personal Finance Tracker
 
-> A swappable AI provider architecture for backend applications, demonstrated through a personal finance tracker with automatic transaction categorization.
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/ArkonysDevJ/nestjs-ai-provider-finance/blob/main/README.md)
+[![es](https://img.shields.io/badge/lang-es-yellow.svg)](https://github.com/ArkonysDevJ/nestjs-ai-provider-finance/blob/main/README.es.md)
+
+> **TL;DR:** A swappable AI provider architecture for backend applications, demonstrated through a personal finance tracker with automatic transaction categorization.
+
+![Transactions view — each row shows which AI provider classified it (Gemini, local Ollama, or manual override)](docs/assets/transactions.png)
 
 ## The Pattern
 
@@ -32,7 +37,7 @@ npm workspaces monorepo — backend and frontend are symmetric siblings, not an 
 
 ```
 apps/
-├── api/                              # NestJS backend
+├── api/                                   # NestJS backend
 │   └── src/
 │       ├── ai/
 │       │   ├── ai-provider.interface.ts   # The contract both implementations satisfy
@@ -44,15 +49,15 @@ apps/
 │       │   ├── transactions.service.ts    # Calls AIProvider, persists ai_provider field
 │       │   └── entities/transaction.entity.ts
 │       ├── categories/
-│       └── common/guards/            # Standard Supabase JWT guard (no vendor lock-in)
-└── web/                               # React + Vite dashboard
+│       └── common/guards/                 # Standard Supabase JWT guard (no vendor lock-in)
+└── web/                                   # React + Vite dashboard
     └── src/
 
-supabase/migrations/                   # SQL schema, applied via Supabase CLI
-bruno/                                  # API collection, tested against a live Supabase project
-finance-classifier-mcp/                 # Reference MCP server backing AI_PROVIDER=local
-                                         # (Python + Ollama; real MCP over streamable-http,
-                                         # not a plain REST mock)
+supabase/migrations/                       # SQL schema, applied via Supabase CLI
+bruno/                                     # API collection, tested against a live Supabase project
+finance-classifier-mcp/                    # Reference MCP server backing AI_PROVIDER=local
+                                           # (Python + Ollama; real MCP over streamable-http,
+                                           # not a plain REST mock)
 ```
 
 ## Getting started
@@ -155,6 +160,7 @@ Other local classifications observed: "Cita pediátrica" → Salud, "Uber al hos
 ## Live demo
 
 **Frontend:** https://nestjs-ai-provider-finance-web.vercel.app
+
 **Backend:** https://nestjs-ai-provider-finance-production.up.railway.app
 
 Demo credentials (read-only account, no real data):
