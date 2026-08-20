@@ -1,6 +1,12 @@
 // src/app.module.ts
 // [F-ID: SRC-APP-MODULE-01]
-// @version 1.1.0
+// @version 1.2.0
+// @changelog 1.2.0 — Register HealthModule (GET /v1/health). Backs the
+//   Supabase keep-alive automation (.github/workflows/keep-alive.yml):
+//   an unattended scheduler pings it every few days so the free-tier
+//   project never accumulates the ~7 days of inactivity that triggers
+//   an auto-pause. Deliberately outside SupabaseAuthGuard's reach —
+//   see HealthController/HealthService for why.
 // @changelog 1.1.0 — Global IP-based ThrottlerGuard (APP_GUARD), 100
 //   requests / 5 min per IP across every endpoint. Second, independent
 //   layer on top of TransactionsModule's per-user limit on POST
@@ -26,6 +32,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TransactionsModule } from './transactions/transactions.module';
 import { CategoriesModule } from './categories/categories.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -33,6 +40,7 @@ import { CategoriesModule } from './categories/categories.module';
     ThrottlerModule.forRoot([{ name: 'default', ttl: 300_000, limit: 100 }]),
     CategoriesModule,
     TransactionsModule,
+    HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
