@@ -62,7 +62,7 @@ finance-classifier-mcp/                    # Servidor MCP de referencia que resp
 
 ## Cómo empezar
 
-Requiere Node 20+. Este es un monorepo con npm workspaces — un solo `npm install` en la raíz instala ambas apps.
+Requiere Node 24.22.1+ (ver `.nvmrc`). Este es un monorepo con npm workspaces — un solo `npm install` en la raíz instala ambas apps.
 
 ```bash
 npm install
@@ -167,6 +167,24 @@ Credenciales demo (cuenta de solo lectura, sin datos reales):
 
 - Email: `demo@arkonysdevj.com`
 - Password: `arkonys2026`
+
+## Decisiones de despliegue
+
+**Node 24 queda fijado** (`engines: >=24.22.1`, `.nvmrc`, `.node-version`) porque 24.22.1 es la primera versión 24.x con las [correcciones de seguridad de octubre de 2026](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases). El backend lo compila Nixpacks (`railway.json`), que elige una versión de Node por su cuenta cuando el repositorio no declara ninguna.
+
+**Por qué Docker.** El `Dockerfile` de la raíz construye la API en una imagen cuyo runtime de Node es la etiqueta base (`node:24.22.1-slim`), y no la versión que el builder resuelva en cada despliegue. Solo lleva la API compilada y sus dependencias de producción; el clasificador MCP en Python sigue siendo un servicio aparte, al que se llega por `LOCAL_AI_ENDPOINT`. Se construye con `docker build .` desde la raíz del repositorio.
+
+| | Railway | Cloud Run |
+|---|---|---|
+| Costo con poco tráfico | El contenedor se cobra mientras corre, es decir, todo el tiempo salvo que se active el modo de suspensión | Escala a cero; el tiempo inactivo no se cobra |
+| Arranque en frío | Ninguno por defecto: la instancia sigue activa | La primera petición tras un periodo inactivo espera a que arranque una instancia, salvo que se mantenga un mínimo de instancias |
+| Autenticación | URL pública; el acceso lo controla la app (guard con JWT de Supabase y límite de peticiones) | Pública, o restringida por la plataforma a llamadas autenticadas con IAM |
+| Cómo se fija la versión de Node | Nixpacks lee `engines` / `.nvmrc`; con el builder Dockerfile, la etiqueta de la imagen base | La etiqueta de la imagen base de la imagen desplegada (los despliegues desde código usan buildpacks que leen `engines`) |
+| Quién compila la imagen | Railway, ejecutando en cada despliegue el build definido en `railway.json` | Uno mismo o el CI (o Cloud Build), subiéndola a un registro |
+
+Este repositorio despliega el backend en Railway con Nixpacks, según `railway.json`; el Dockerfile queda listo para cuando se cambie el builder, y entonces la versión de Node vendrá de la imagen y no de Nixpacks.
+
+**Contrato de la imagen:** escucha en `PORT` (3000 si no está definido) en `0.0.0.0`, no guarda estado local salvo los contadores del límite de peticiones en memoria (por instancia, se reinician al reiniciar; los datos están en Supabase), escribe los logs en stdout/stderr y se cierra de forma ordenada con `SIGTERM`.
 
 ## Estado
 
