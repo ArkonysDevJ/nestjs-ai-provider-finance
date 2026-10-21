@@ -1,0 +1,31 @@
+# Build context for the root Dockerfile: only what its COPY lines need.
+
+# Rebuilt inside the image from the lockfile.
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+
+# Secrets (Gemini and Supabase keys) are injected by the platform at runtime;
+# an env file in the context could end up baked into a layer.
+**/.env
+**/.env.*
+
+# Frontend is deployed separately; npm ci only needs its manifest.
+apps/web/*
+!apps/web/package.json
+
+# Separate services and tooling the API does not load at runtime: the Python
+# MCP classifier, database migrations/tests, and Bruno request collections.
+finance-classifier-mcp
+supabase
+bruno
+
+# Repository metadata, docs and deployment config.
+.git
+.github
+docs
+pake
+railway.json
+**/*.md
+**/*.log
+coverage
