@@ -1,7 +1,6 @@
 # API image (apps/api). Build from the repository root:
 #   docker build -t finance-api .
-# railway.json pins the NIXPACKS builder, so this file has no effect on the
-# current deployment until the builder is switched on purpose.
+# The deploy workflow builds this file and deploys the image to Cloud Run.
 
 # Pinned to the exact patch that carries the October 2026 security fixes, so
 # the runtime only changes when this line does. Debian slim over Alpine: the
@@ -50,6 +49,6 @@ WORKDIR /app/apps/api
 # Informational: the app binds $PORT (3000 by default) on 0.0.0.0.
 EXPOSE 3000
 # Exec form: node runs as PID 1 and gets SIGTERM itself, which triggers the Nest
-# shutdown hooks. Going through npm (as railway.json's startCommand does) adds
-# a parent process between the platform and the app.
+# shutdown hooks. Going through npm adds a parent process between the
+# platform and the app.
 CMD ["node", "dist/main.js"]
