@@ -144,7 +144,9 @@ retry before going on.
    ```
 
    The last step of this runbook (section 13) saves `~/iam-after.json` and
-   compares the two.
+   compares the two. In that diff, the additions of Google service agents
+   (`service-<PROJECT_NUMBER>@…`) caused by enabling the APIs are expected; any
+   other new account or role is reported.
 
    Also record what the service account that AI Studio uses for this project
    can do today. List the project's service accounts, pick that one, and run:
@@ -462,10 +464,9 @@ It has the form
    - what exactly the cap pauses (Cloud Run, Gemini calls, everything);
    - how it is lifted, and by whom;
    - what "resets at the start of each month" means in practice;
-   - **who receives the notice** when the cap is reached, and **how it is
-     lifted**.
+   - **who receives the notice** when the cap is reached.
 
-   Record the last two items before the first real image is deployed. If the
+   Record all of the above before the first real image is deployed. If the
    mechanism turns out to be incompatible with the demo, stop and report.
 3. The existing USD 5 account budget stays as it is.
 
@@ -511,7 +512,9 @@ token.
 
   The files stay in the Cloud Shell home, never in the repository. The diff
   goes into the report. Expected: no role for either service account at
-  project level, and no other change you did not make.
+  project level, and no other change you did not make. The additions of Google
+  service agents (`service-<PROJECT_NUMBER>@…`) caused by enabling the APIs are
+  expected; any other new account or role is reported.
 
 ## 14. Undo
 
@@ -541,32 +544,3 @@ The two new keys are revoked separately, outside `gcloud`:
 Deleted workload identity pools and service accounts stay in soft-delete for
 about 30 days, and during that time their ID cannot be reused. To run the setup
 again after an undo, use different names or restore them with `undelete`.
-
-## Points for the auditor
-
-Precedent, verified in a previous deployment of the same design
-(`nestjs-rls-multitenant-bookings`, 2 November 2026):
-
-1. The deploy account needs **no Secret Manager role**. Deploying a revision that
-   references a secret needs only that the runtime account can read it. The
-   first deployment there succeeded with no Secret Manager role on the deploy
-   account.
-2. `job_workflow_ref` for a workflow started by `workflow_run` names the deploy
-   workflow file on the default branch. Google accepted the token under the
-   provider condition of section 10, which includes that claim.
-
-Open in this runbook, not covered by that precedent:
-
-3. **Two secrets.** The precedent had one secret. Here there are two (the Gemini
-   key and the Supabase publishable key), each with its own per-secret
-   `secretAccessor` binding and its own pinned version. Confirm the bindings in
-   section 6.3 are enough and that nothing needs a role on the deploy account.
-4. **Daily quota for Gemini** (section 11.1). Whether a quota override applies
-   to a key issued from AI Studio in this project, and the exact quota name,
-   are not verified.
-5. **Project spending cap** (section 11.2). What it pauses, how it is lifted and
-   what the monthly reset means are not verified. Cloud Run and Gemini share the
-   project, so a pause may take the demo down; that risk is accepted.
-6. **Image pull.** Whether Cloud Run can pull from the `ai-finance` repository
-   in this project using its default service agent is not verified. If the first
-   deployment reports a pull error, it is reported before any role is added.
