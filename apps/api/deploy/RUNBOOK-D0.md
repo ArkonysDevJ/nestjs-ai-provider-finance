@@ -1,8 +1,12 @@
 # D0 runbook: one-time Google Cloud setup for the API
 
-Status: **draft for audit.** Nothing here has been executed. The repository
-owner runs every step with their own account; no credentials, key values or
-Google Cloud access are ever shared with the author of this file.
+Status: **executed by the repository owner on 3 and 4 November 2026**, with one
+deviation: the Workload Identity provider is named `github-ai-finance`, because
+the name first planned for it (`github-nestjs-ai-provider-finance`) has 33
+characters and Google accepts at most 32. This file uses the name that was
+applied. The repository owner runs every step with their own account; no
+credentials, key values or Google Cloud access are ever shared with the author
+of this file.
 
 **Where to run it:** in Cloud Shell (bash with `gcloud` already signed in to
 the project). The owner works on Windows, so commands are written for bash and
