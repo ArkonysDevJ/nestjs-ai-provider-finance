@@ -1,0 +1,64 @@
+# Cloud Run service definition, applied by the deploy workflow with
+# `gcloud run services replace`.
+#
+# __IMAGE__ is a marker, not a value. The workflow replaces it with the digest of
+# the image it just built, in a temporary copy of this file; nothing writes the
+# digest back to the repository. The digest that is running is recorded in the
+# workflow run and in the Cloud Run revision.
+#
+# Only identifiers appear here. The two keys are read from Secret Manager at a
+# pinned version (never `latest`), so rotating a key is a deployment: add a
+# version in Secret Manager, change the number below, merge.
+#
+# Replacing the service does not change its IAM policy: the public-invoker
+# binding made during the one-time setup stays.
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ai-finance-api
+  labels:
+    cloud.googleapis.com/location: southamerica-east1
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "2"
+        # CPU is allocated only while a request is being handled.
+        run.googleapis.com/cpu-throttling: "true"
+    spec:
+      serviceAccountName: ai-finance-run@gen-lang-client-0828405476.iam.gserviceaccount.com
+      # The Gemini call has no timeout of its own, so the platform one is the
+      # only limit. 60 seconds is well above the usual latency of a
+      # classification. Known limit: if Cloud Run cuts a request at this
+      # point, the handler may still finish and insert its row after the 504,
+      # and a retry by the user can then create a duplicate.
+      timeoutSeconds: 60
+      containers:
+        - image: __IMAGE__
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          env:
+            # PORT is set by Cloud Run and read by src/main.ts.
+            - name: NODE_ENV
+              value: production
+            - name: AI_PROVIDER
+              value: gemini
+            - name: SUPABASE_URL
+              value: https://qwgtwvimifwfuigcgmbv.supabase.co
+            # Publishable key of Supabase, created for this service only.
+            - name: SUPABASE_ANON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-publishable-key-cloudrun
+                  key: "1"
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gemini-api-key-cloudrun
+                  key: "1"

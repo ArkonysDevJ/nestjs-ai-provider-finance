@@ -1,0 +1,59 @@
+# Builds the API and the web app, builds the container image, and reports the
+# state of the production dependencies. Nothing here touches the deployed demo
+# or its database. There is no test step yet: the repository has no unit tests
+# and the database tests do not run from a clean checkout.
+#
+# The job is named `ci`: that is the check branch protection on `main`
+# requires, so a red run blocks the merge. The deploy workflow waits for this
+# workflow (named `CI`) to finish on the same commit.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build API
+        run: npm run build:api
+
+      - name: Build web
+        run: npm run build:web
+
+      # The deploy workflow builds this same Dockerfile, so it must keep
+      # building. Here the image is only built, not pushed or run.
+      - name: Build the container image
+        run: docker build -t ai-finance-api:ci .
+
+      # Informational: this step always ends with status 0. It becomes a
+      # blocking step once the dependency advisories are resolved.
+      - name: Dependency audit (informational)
+        run: |
+          npm audit --omit=dev || echo "::warning::npm audit reported advisories (informational, not blocking)."

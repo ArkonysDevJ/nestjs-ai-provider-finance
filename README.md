@@ -62,7 +62,7 @@ finance-classifier-mcp/                    # Reference MCP server backing AI_PRO
 
 ## Getting started
 
-Requires Node 20+. This is an npm workspaces monorepo — one `npm install` at the root installs both apps.
+Requires Node 24.22.1+ (see `.nvmrc`). This is an npm workspaces monorepo — one `npm install` at the root installs both apps.
 
 ```bash
 npm install
@@ -167,6 +167,24 @@ Demo credentials (read-only account, no real data):
 
 - Email: `demo@arkonysdevj.com`
 - Password: `arkonys2026`
+
+## Deployment decisions
+
+**Node 24 is pinned** (`engines: >=24.22.1`, `.nvmrc`, `.node-version`) because 24.22.1 is the first 24.x release with the [October 2026 security fixes](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases). The backend is built by Nixpacks (`railway.json`), which chooses a Node version by itself when the repository does not declare one.
+
+**Why Docker.** The root `Dockerfile` builds the API into an image whose Node runtime is the base tag (`node:24.22.1-slim`), not whatever version the builder resolves on a given deploy. It ships only the compiled API and its production dependencies; the Python MCP classifier stays a separate service reached through `LOCAL_AI_ENDPOINT`. Build it with `docker build .` from the repository root.
+
+| | Railway | Cloud Run |
+|---|---|---|
+| Cost with little traffic | The container is billed while it runs, which is all the time unless sleeping is enabled | Scales to zero; idle time is not billed |
+| Cold start | None by default: the instance stays up | The first request after idle waits for an instance to start, unless a minimum instance count is kept |
+| Authentication | Public URL; the app enforces access (Supabase JWT guard plus rate limiting) | Public, or restricted by the platform to IAM-authenticated callers |
+| How the Node version is pinned | Nixpacks reads `engines` / `.nvmrc`; with a Dockerfile builder, the base image tag | The base image tag of the deployed image (source deploys use buildpacks that read `engines`) |
+| Who builds the image | Railway, running the build defined in `railway.json` on every deploy | You or your CI (or Cloud Build), pushing to a registry |
+
+This repository deploys the backend on Railway with Nixpacks, as configured in `railway.json`; the Dockerfile is ready for the moment the builder is switched, so the Node version then comes from the image instead of from Nixpacks.
+
+**Image contract:** listens on `PORT` (3000 if unset) on `0.0.0.0`, keeps no local state other than in-memory rate-limit counters (per instance, reset on restart; data lives in Supabase), logs to stdout/stderr, and shuts down cleanly on `SIGTERM`.
 
 ## Status
 

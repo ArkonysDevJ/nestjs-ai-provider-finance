@@ -41,6 +41,9 @@ async function bootstrap(): Promise<void> {
   );
 
   app.setGlobalPrefix('v1');
+  // On SIGTERM, close the HTTP server and the app so a redeploy lets running
+  // requests (including slow AI classification calls) finish.
+  app.enableShutdownHooks();
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   await app.listen(port, '0.0.0.0');
