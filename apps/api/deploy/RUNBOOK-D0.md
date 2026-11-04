@@ -64,24 +64,30 @@ export SECRET_SUPABASE="supabase-publishable-key-cloudrun"
 export WIF_POOL="github-actions"
 export WIF_PROVIDER="github-nestjs-ai-provider-finance"
 
-export GH_REPO="ArkonysDevJ/nestjs-ai-provider-finance"
 export GH_DEPLOY_WORKFLOW=".github/workflows/deploy.yml"
 
 gcloud config set project "$PROJECT_ID"
 ```
 
-The numeric GitHub identifiers come from the public GitHub API (no `gh`
-needed). Numeric ids survive a rename or re-creation of the repository; a name
-does not.
+The GitHub identifiers come from the public GitHub API (no `gh` needed), all
+from the same single call. The repository name is typed only once, to make the
+call; `GH_REPO` is then taken from the `full_name` the API returns, so it has
+the exact capitalization GitHub uses (the `job_workflow_ref` comparison in
+section 10 is case sensitive). Numeric ids survive a rename or re-creation of
+the repository; a name does not.
 
 ```bash
-export GH_REPO_ID="$(curl -s "https://api.github.com/repos/$GH_REPO" | jq -r '.id')"
-export GH_OWNER_ID="$(curl -s "https://api.github.com/repos/$GH_REPO" | jq -r '.owner.id')"
-echo "repository id: $GH_REPO_ID   owner id: $GH_OWNER_ID"
+GH_JSON="$(curl -s "https://api.github.com/repos/ArkonysDevJ/nestjs-ai-provider-finance")"
+export GH_REPO="$(printf %s "$GH_JSON" | jq -r '.full_name')"
+export GH_REPO_ID="$(printf %s "$GH_JSON" | jq -r '.id')"
+export GH_OWNER_ID="$(printf %s "$GH_JSON" | jq -r '.owner.id')"
+unset GH_JSON
+echo "repository: $GH_REPO   repository id: $GH_REPO_ID   owner id: $GH_OWNER_ID"
 ```
 
-Both must be plain numbers. If either prints `null` or is empty (for example
-because of an API rate limit), stop and retry before going on.
+The two ids must be plain numbers and `GH_REPO` must not be `null`. If any of
+them is `null` or empty (for example because of an API rate limit), stop and
+retry before going on.
 
 ## 2. Preconditions (checks, no changes)
 
@@ -130,6 +136,32 @@ because of an API rate limit), stop and retry before going on.
 4. **Account budget.** The existing USD 5 account budget and its alerts (50, 90,
    100 and 150 percent) are still in place. They are kept.
 
+5. **IAM baseline.** Save the project policy before changing anything, in the
+   Cloud Shell home directory, never inside the repository:
+
+   ```bash
+   gcloud projects get-iam-policy "$PROJECT_ID" --format=json > ~/iam-before.json
+   ```
+
+   The last step of this runbook (section 13) saves `~/iam-after.json` and
+   compares the two.
+
+   Also record what the service account that AI Studio uses for this project
+   can do today. List the project's service accounts, pick that one, and run:
+
+   ```bash
+   gcloud iam service-accounts list --format='table(email,displayName,disabled)'
+   export AISTUDIO_SA="<e-mail of the AI Studio service account, if any>"
+   gcloud projects get-iam-policy "$PROJECT_ID" \
+     --flatten='bindings[].members' \
+     --filter="bindings.members:serviceAccount:$AISTUDIO_SA" \
+     --format='value(bindings.role)'
+   gcloud iam service-accounts keys list --iam-account="$AISTUDIO_SA" --managed-by=user
+   ```
+
+   Record its roles and any user-managed key (key ids only, never key
+   material). If no such account exists, record that.
+
 ## 3. Enable the APIs
 
 ```bash
@@ -149,7 +181,7 @@ Manager is currently disabled in this project.
 Check: this lists all six.
 
 ```bash
-gcloud services list --enabled --filter="name:(run OR artifactregistry OR secretmanager OR iamcredentials OR iam OR sts)" --format='value(name)'
+gcloud services list --enabled --filter="config.name:(run OR artifactregistry OR secretmanager OR iamcredentials OR iam OR sts)" --format='value(config.name)'
 ```
 
 ## 4. Artifact Registry repository
@@ -192,10 +224,15 @@ gcloud secrets create "$SECRET_SUPABASE" \
 
 ### 6.1 Create the keys
 
-- **Gemini key.** Create a new API key for this project (name it for example
-  `ai-finance-cloudrun`) and restrict it to the **Generative Language API**
-  only. This is a new key; the current one (used by Railway) is not reused and
-  is deleted during the Railway retirement.
+- **Gemini key.** Create a new API key (name it for example
+  `ai-finance-cloudrun`) in the Google Cloud console, under APIs and Services,
+  Credentials, with the project "AI Provider Portafolio" selected in the
+  project picker; or in AI Studio, choosing that same project. Restrict it to
+  the **Generative Language API** only, and confirm in that same Credentials
+  page that the restriction is saved. Do **not** create it with
+  `gcloud services api-keys create`: that command prints the key value. This is
+  a new key; the current one (used by Railway) is not reused and is deleted
+  during the Railway retirement.
 - **Supabase key.** In the Supabase dashboard create a new **publishable** key
   (for example `ai-finance-api-cloudrun`) for the Cloud Run API only. The web
   app and the Bruno collection get their own keys later.
@@ -402,9 +439,21 @@ It has the form
 1. **Daily quota for Gemini.** Set a daily cap on `GenerateContent` requests of
    the Generative Language API for this project, with the value chosen by the
    owner. Console path: IAM and Admin, Quotas and System Limits, filter by
-   "Generative Language API". Record the value set and the exact quota name
-   used. *Not verified:* whether a quota override applies to a key issued from
-   AI Studio in this project. Test it after setting it and note the result.
+   "Generative Language API".
+   - **Record the dimension of the quota** (per project, per model, per user or
+     per region) and the exact quota name used.
+   - **If the quota is per model**, set the override (a) on the model that
+     appears in the Generative Language API metrics for the requests already
+     made (the last 30 days), and also (b) on every model of the flash family
+     that the quota list shows, because the code requests the alias
+     `gemini-flash-latest`, not a fixed model.
+   - **Verify in the console** that the effective value shows the override.
+     Do not test it by exhausting it.
+   - The alias can change to a different model without notice. Until the
+     application pins a model, review the quota assignment whenever the model
+     shown in the metrics changes.
+   - *Not verified:* whether a quota override applies to a key issued from AI
+     Studio in this project. Record what the console shows.
 2. **Project spending cap.** In the console (Billing, Budgets and alerts, or the
    caps feature shown under "Budgets and caps"), create a cap at project level
    with the threshold chosen by the owner. Because Cloud Run and the Gemini key
@@ -412,9 +461,12 @@ It has the form
    That risk is accepted, but the behavior must be recorded here:
    - what exactly the cap pauses (Cloud Run, Gemini calls, everything);
    - how it is lifted, and by whom;
-   - what "resets at the start of each month" means in practice.
+   - what "resets at the start of each month" means in practice;
+   - **who receives the notice** when the cap is reached, and **how it is
+     lifted**.
 
-   If the mechanism turns out to be incompatible with the demo, stop and report.
+   Record the last two items before the first real image is deployed. If the
+   mechanism turns out to be incompatible with the demo, stop and report.
 3. The existing USD 5 account budget stays as it is.
 
 ## 12. What to report back
@@ -433,7 +485,8 @@ token.
 | Secret names and the pinned version number of each (section 6.4) | `service.yaml` |
 | Repository id and owner id (section 1) | for the audit record |
 | Whether section 8 (public invocation) succeeded, with the `200` check | go / no-go |
-| Results recorded in section 11 (quota, cap) | for the audit record |
+| Results recorded in section 11 (quota dimension and override, cap, who is notified, how it is lifted) | for the audit record |
+| `diff ~/iam-before.json ~/iam-after.json` and the AI Studio service account findings (section 2.5) | for the audit record |
 
 ## 13. Verification summary
 
@@ -447,7 +500,18 @@ token.
 - [ ] The provider condition holds the repository ids, the branch and the workflow file.
 - [ ] The `workloadIdentityUser` binding is on a `principalSet` filtered by `repository_id`.
 - [ ] Both secrets have a version, and both version numbers are recorded.
-- [ ] Quota and project cap recorded (section 11).
+- [ ] Quota and project cap set and recorded (section 11) **before the first
+      real image is merged and deployed**.
+- [ ] Final IAM comparison done:
+
+  ```bash
+  gcloud projects get-iam-policy "$PROJECT_ID" --format=json > ~/iam-after.json
+  diff ~/iam-before.json ~/iam-after.json
+  ```
+
+  The files stay in the Cloud Shell home, never in the repository. The diff
+  goes into the report. Expected: no role for either service account at
+  project level, and no other change you did not make.
 
 ## 14. Undo
 
@@ -462,6 +526,10 @@ gcloud iam workload-identity-pools delete "$WIF_POOL" --location=global
 gcloud iam service-accounts delete "$DEPLOY_SA_EMAIL"
 gcloud iam service-accounts delete "$RUNTIME_SA_EMAIL"
 ```
+
+The Gemini quota override and the project spending cap (section 11) are not
+removed by these commands. They survive the undo: revert them by hand in the
+console if they must go.
 
 The two new keys are revoked separately, outside `gcloud`:
 
