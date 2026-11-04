@@ -31,6 +31,9 @@ and its public invoker binding, and the cost controls. `service.yaml` and
 
 Every later file uses these names without variation.
 
+Workload Identity pool and provider IDs accept only lowercase letters, digits
+and dashes, and must be 4 to 32 characters long.
+
 | Item | Name |
 | --- | --- |
 | Project | "AI Provider Portafolio" (`PROJECT_ID`, `PROJECT_NUMBER`: record both) |
@@ -40,7 +43,7 @@ Every later file uses these names without variation.
 | Runtime service account | `ai-finance-run` |
 | Deploy service account | `ai-finance-deploy` |
 | Workload Identity pool | `github-actions` |
-| Workload Identity provider | `github-nestjs-ai-provider-finance` |
+| Workload Identity provider | `github-ai-finance` |
 | Secret: Gemini key | `gemini-api-key-cloudrun` |
 | Secret: Supabase publishable key | `supabase-publishable-key-cloudrun` |
 | Deploy workflow file | `.github/workflows/deploy.yml` |
@@ -62,7 +65,7 @@ export SECRET_GEMINI="gemini-api-key-cloudrun"
 export SECRET_SUPABASE="supabase-publishable-key-cloudrun"
 
 export WIF_POOL="github-actions"
-export WIF_PROVIDER="github-nestjs-ai-provider-finance"
+export WIF_PROVIDER="github-ai-finance"
 
 export GH_DEPLOY_WORKFLOW=".github/workflows/deploy.yml"
 
