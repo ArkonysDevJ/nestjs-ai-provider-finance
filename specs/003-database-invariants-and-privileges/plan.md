@@ -14,7 +14,7 @@ Status: draft. Sections marked "pending" wait for the measured catalog of the ho
 - `supabase/migrations/<timestamp>_006_classification_and_invariants_expand.sql`
 - `supabase/migrations/<timestamp>_007_privileges_explicit.sql` (may be part of the expand migration)
 - `supabase/migrations/<timestamp>_008_classification_contract.sql`
-- `supabase/tests/database/002` to `008` (names in the spec).
+- `supabase/tests/database/002` to `009` (names in the spec).
 - `scripts/test-migration-backfill.sh` for the backfill check.
 
 ## Draft DDL outline (expand)

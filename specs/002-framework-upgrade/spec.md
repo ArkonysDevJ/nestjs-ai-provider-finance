@@ -20,6 +20,10 @@ Move the API from NestJS 11 to NestJS 12, with the Fastify version that the lock
 4. If the advisories that remain are only the ones that spec 004 removes, switch the audit step to blocking. Otherwise list each remaining advisory with the spec that closes it, and leave the step informational.
 5. Fix only what the upgrade forces (changed imports, options, types). Do not refactor.
 
+## Contracts
+
+No external contract changes: routes, request and response bodies, status codes, headers and environment variables stay as they are.
+
 ## Edge cases
 
 - The throttler guard, the Fastify adapter and the `ValidationPipe` options must behave the same. The specs that cover them (007 for the limiter) are written against the behavior of the current code.

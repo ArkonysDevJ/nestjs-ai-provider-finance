@@ -29,6 +29,12 @@ HTTP errors are predictable. No raw database or auth message reaches a client. T
 5. Every Supabase call in `TransactionsService` and `CategoriesService` goes through the same mapping. Errors of lookups are never ignored.
 6. The mapping lives in one module that the services share.
 
+## Contracts
+
+- Error body: `{ statusCode, message, error }` as the framework produces it, with a generic `message` for unmapped errors.
+- Status mapping: the table in requirement 4.
+- The retry is internal and invisible to clients.
+
 ## Edge cases
 
 - The retry must not repeat a write that may already have happened. It applies to reads and to the token check only; a write that fails with a token error is not retried.

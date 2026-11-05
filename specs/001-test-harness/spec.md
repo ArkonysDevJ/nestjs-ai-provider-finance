@@ -27,6 +27,12 @@ Make the project testable from a clean clone. Unit tests, database tests and HTT
 8. The existing pgTAP suite keeps passing unchanged.
 9. No workflow step contacts the hosted project or Google.
 
+## Contracts
+
+- Root scripts: `npm test`, `npm run lint`, `npm run lint:fix`, `npm run format` and `npm run format:check`.
+- Bruno environments: `local-stack` (loopback only) and `demo` (hosted project).
+- The CI job keeps the name `ci`.
+
 ## Edge cases
 
 - Two Bruno requests sign in as two different demo users. Locally, the setup script creates them through the Auth sign-up endpoint with the publishable key. It never uses an admin key.
@@ -51,6 +57,8 @@ Make the project testable from a clean clone. Unit tests, database tests and HTT
   - Test: `apps/api/test/prettierignore.spec.ts` (AC-7). The pull request also lists the files of the formatting commit.
 - **AC-8.** The fake MCP server answers the classification tool deterministically and listens only on loopback.
   - Test: `apps/api/test/support/fake-mcp-server.spec.ts` (AC-8).
+- **AC-9.** Every acceptance criterion of every spec is cited by name in at least one test file listed in its `Test:` line, and CI fails if one is not. Criteria marked as manual checks are exempt and listed by the script.
+  - Test: `scripts/check-ac-coverage.mjs`, CI step "Acceptance criteria coverage" (AC-9).
 
 ## Out of scope
 

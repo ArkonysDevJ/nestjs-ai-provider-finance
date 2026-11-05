@@ -10,6 +10,7 @@
 - `bruno/nestjs-ai-provider-finance/environments/`: new `local-stack.bru`; rename the current `local.bru` to `demo.bru`.
 - `bruno/setup-local.sh`: creates the two local users through the sign-up endpoint.
 - `.github/workflows/ci.yml`: new steps in the order of the spec. The job keeps the name `ci`.
+- `scripts/check-ac-coverage.mjs`: reads every `specs/*/spec.md`, takes each `AC-n` and its `Test:` paths, and checks that each listed file exists and cites that `AC-n`; manual checks are skipped and printed.
 - `AGENTS.md`: the commands table loses its "available after" caveat.
 
 ## Decisions

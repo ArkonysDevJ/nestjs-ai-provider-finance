@@ -108,6 +108,12 @@ Move the data invariants that today live only in the API into the database, and 
   - Test: `supabase/tests/database/008-demo-identity.test.sql` (AC-12), skipped with a recorded reason if the platform does not allow the trigger.
 - **AC-13.** The differences between the local catalog and the measured hosted catalog are listed and explained.
   - Test: reviewed in the pull request of the expand stage (AC-13).
+- **AC-14.** An object created in `public` after this stage starts with no privileges for `anon`, `authenticated` and `PUBLIC` (default privileges).
+  - Test: `supabase/tests/database/002-privileges.test.sql` creates a temporary table and function and checks their privileges (AC-14).
+- **AC-15.** After the expand stage the running code keeps working: an insert that does not set the new columns succeeds, and an owner update of `ai_classified` and `ai_provider` succeeds.
+  - Test: `supabase/tests/database/009-expand-compatibility.test.sql` (AC-15).
+- **AC-16.** After the contract stage, a creation, a reclassification and a summary read through the deployed API return no server error. Live check by the maintainer.
+  - Test: manual check recorded in the pull request of the contract stage (AC-16).
 
 ## Out of scope
 

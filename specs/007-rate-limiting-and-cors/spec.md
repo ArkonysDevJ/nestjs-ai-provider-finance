@@ -24,6 +24,12 @@ The rate limit counts each client separately behind the Cloud Run proxy, cannot 
 6. Exceeding a limit returns 429 with the `Retry-After` header.
 7. CORS reads `CORS_ORIGINS`, a comma-separated list of exact origins. If the variable is missing or empty, no origin is allowed. `service.yaml` sets the web app origin. Allowed methods and headers are the ones the web app needs.
 
+## Contracts
+
+- Environment variables: `RATE_LIMIT_WINDOW_SECONDS`, `RATE_LIMIT_MAX`, `RATE_LIMIT_HEALTH_MAX`, `RATE_LIMIT_TRUSTED_PROXY_HOPS` and `CORS_ORIGINS`.
+- Exceeding a limit: status 429 with `Retry-After`.
+- CORS: `Access-Control-Allow-Origin` is sent only for listed origins.
+
 ## Edge cases
 
 - A client that puts extra entries at the left of `X-Forwarded-For` does not change its tracked address.

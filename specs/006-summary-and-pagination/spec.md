@@ -21,6 +21,11 @@ The summary is exact to the cent whatever the number of rows, and listing transa
 5. The web app accepts a total as a number or as a string during the window in which the API and the web app are deployed at different times. It formats decimal strings without floating point arithmetic.
 6. The web app pages through the list until a page is shorter than `limit`.
 
+## Contracts
+
+- `GET /v1/transactions?limit=&offset=` returns a JSON array.
+- `GET /v1/transactions/summary?month=YYYY-MM` returns `{ selectedMonth, byCategory[], byMonth[] }`. `totalExpense` and `totalIncome` are decimal strings; `transactionCount` is a number.
+
 ## Edge cases
 
 - A month without rows returns empty `byCategory` and a `byMonth` that omits it.

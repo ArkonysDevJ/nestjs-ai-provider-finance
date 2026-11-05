@@ -10,5 +10,6 @@ Each task names the stage that executes it.
 - [ ] Add the fake MCP server and its test. (stage: 001)
 - [ ] Extend `ci.yml` with the steps of the spec; keep the job name `ci`. (stage: 001)
 - [ ] Add the hermetic CI, Bruno environments and `.prettierignore` tests. (stage: 001)
+- [ ] Add the acceptance criteria coverage script and its CI step. (stage: 001)
 - [ ] Update the commands table in `AGENTS.md`. (stage: 001)
 - [ ] Update this spec and this file with anything that changed during implementation. (stage: 001)
