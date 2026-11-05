@@ -47,16 +47,16 @@ import {
   AI_PROVIDER,
   AIProvider,
   FALLBACK_CATEGORY,
-} from '../ai/ai-provider.interface';
-import { CategoriesService } from '../categories/categories.service';
-import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { ReclassifyTransactionDto } from './dto/reclassify-transaction.dto';
+} from '../ai/ai-provider.interface.js';
+import { CategoriesService } from '../categories/categories.service.js';
+import { CreateTransactionDto } from './dto/create-transaction.dto.js';
+import { ReclassifyTransactionDto } from './dto/reclassify-transaction.dto.js';
 import {
   CategorySummaryItem,
   MonthSummaryItem,
   SummaryResponse,
-} from './dto/summary-response.dto';
-import { Transaction } from './entities/transaction.entity';
+} from './dto/summary-response.dto.js';
+import { Transaction } from './entities/transaction.entity.js';
 
 export interface TransactionWithCategory extends Transaction {
   categories: { id: string; name: string } | null;

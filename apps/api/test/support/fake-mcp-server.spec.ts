@@ -1,7 +1,9 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { createRequire } from 'node:module';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+const require = createRequire(import.meta.url);
+
 const { startFakeMcpServer } = require('./fake-mcp-server.cjs') as {
   startFakeMcpServer: (options?: { host?: string; port?: number }) => Promise<{
     host: string;

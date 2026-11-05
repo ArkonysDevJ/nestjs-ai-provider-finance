@@ -10,7 +10,7 @@
 
 import { Injectable } from '@nestjs/common';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { Category } from './entities/category.entity';
+import { Category } from './entities/category.entity.js';
 
 @Injectable()
 export class CategoriesService {

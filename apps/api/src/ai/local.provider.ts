@@ -29,7 +29,7 @@ import {
   ClassificationInput,
   ClassificationResult,
   FALLBACK_CATEGORY,
-} from './ai-provider.interface';
+} from './ai-provider.interface.js';
 
 interface McpTextContent {
   type: string;

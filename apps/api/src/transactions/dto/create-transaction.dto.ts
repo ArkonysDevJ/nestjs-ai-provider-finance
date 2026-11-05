@@ -16,7 +16,7 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { TransactionType } from '../../ai/ai-provider.interface';
+import { TransactionType } from '../../ai/ai-provider.interface.js';
 
 export class CreateTransactionDto {
   @IsString()

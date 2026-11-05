@@ -13,10 +13,10 @@
 
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { AiModule } from '../ai/ai.module';
-import { CategoriesModule } from '../categories/categories.module';
-import { TransactionsController } from './transactions.controller';
-import { TransactionsService } from './transactions.service';
+import { AiModule } from '../ai/ai.module.js';
+import { CategoriesModule } from '../categories/categories.module.js';
+import { TransactionsController } from './transactions.controller.js';
+import { TransactionsService } from './transactions.service.js';
 
 @Module({
   imports: [
