@@ -90,7 +90,8 @@ export class SupabaseAuthGuard implements CanActivate {
 
   constructor(private readonly configService: ConfigService) {
     this.supabaseUrl = configService.getOrThrow<string>('SUPABASE_URL');
-    this.supabaseAnonKey = configService.getOrThrow<string>('SUPABASE_ANON_KEY');
+    this.supabaseAnonKey =
+      configService.getOrThrow<string>('SUPABASE_ANON_KEY');
     this.authClient = createClient(
       this.supabaseUrl,
       this.supabaseAnonKey,

@@ -1,0 +1,11 @@
+# Never reformat applied migrations or the lockfile.
+supabase/migrations/**
+package-lock.json
+# Build output and dependencies.
+**/dist/**
+**/node_modules/**
+# Not covered by the formatter yet.
+apps/web/**
+bruno/**
+finance-classifier-mcp/**
+docs/**

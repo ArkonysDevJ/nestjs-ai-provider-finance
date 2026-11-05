@@ -48,9 +48,7 @@ export class LocalProvider implements AIProvider, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     // Streamable-http MCP server URL, e.g.:
     // http://localhost:8765/mcp -- NOT a REST endpoint.
-    this.endpoint = this.configService.getOrThrow<string>(
-      'LOCAL_AI_ENDPOINT',
-    );
+    this.endpoint = this.configService.getOrThrow<string>('LOCAL_AI_ENDPOINT');
   }
 
   async classify(input: ClassificationInput): Promise<ClassificationResult> {
@@ -97,9 +95,7 @@ export class LocalProvider implements AIProvider, OnModuleDestroy {
   }
 
   private async connect(): Promise<Client> {
-    const transport = new StreamableHTTPClientTransport(
-      new URL(this.endpoint),
-    );
+    const transport = new StreamableHTTPClientTransport(new URL(this.endpoint));
     const client = new Client({
       name: 'nestjs-ai-provider-finance',
       version: '1.0.0',
