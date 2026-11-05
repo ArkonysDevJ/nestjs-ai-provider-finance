@@ -176,7 +176,7 @@ Credenciales demo (cuenta de solo lectura, sin datos reales):
 
 **Dónde corre.** La API corre en Google Cloud Run, en `southamerica-east1` (São Paulo). Escala entre 0 y 2 instancias: el tiempo inactivo no se cobra, y la primera petición tras un periodo tranquilo espera a que arranque una instancia (arranque en frío). La CPU se asigna solo mientras se atiende una petición, y una petición se corta a los 60 segundos.
 
-**Configuración y secretos.** El servicio se describe en `apps/api/deploy/service.yaml`, con un marcador donde va la imagen. La clave de Gemini y la clave publicable de Supabase están en Secret Manager y se leen con una versión fija (nunca `latest`), de modo que rotar una clave es un despliegue. La configuración única de Google Cloud está documentada en `apps/api/deploy/RUNBOOK-D0.md`.
+**Configuración y secretos.** El servicio se describe en `apps/api/deploy/service.yaml`, con un marcador donde va la imagen. La clave de Gemini y la clave publicable de Supabase están en Secret Manager y se leen con una versión fija (nunca `latest`), de modo que rotar una clave es un despliegue. La configuración única de Google Cloud está documentada en `apps/api/deploy/RUNBOOK-SETUP.md`.
 
 **Cómo se despliega.** El workflow de CI (`.github/workflows/ci.yml`) compila la API, la web y la imagen en cada pull request y en cada push a `main`. El workflow de despliegue (`.github/workflows/deploy.yml`) corre solo cuando el CI termina bien para un push a `main`: compila ese commit exacto, publica la imagen y la despliega por digest. Se autentica con Workload Identity Federation (no existe ningún archivo de claves) y nunca hace commits ni push. `main` solo acepta cambios mediante pull requests.
 

@@ -176,7 +176,7 @@ Demo credentials (read-only account, no real data):
 
 **Where it runs.** The API runs on Google Cloud Run in `southamerica-east1` (São Paulo). It scales between 0 and 2 instances: idle time is not billed, and the first request after a quiet period waits for an instance to start (cold start). CPU is allocated only while a request is being handled, and a request is cut after 60 seconds.
 
-**Configuration and secrets.** The service is described in `apps/api/deploy/service.yaml`, with a marker where the image goes. The Gemini key and the Supabase publishable key live in Secret Manager and are read at a pinned version (never `latest`), so rotating a key is a deployment. The one-time Google Cloud setup is documented in `apps/api/deploy/RUNBOOK-D0.md`.
+**Configuration and secrets.** The service is described in `apps/api/deploy/service.yaml`, with a marker where the image goes. The Gemini key and the Supabase publishable key live in Secret Manager and are read at a pinned version (never `latest`), so rotating a key is a deployment. The one-time Google Cloud setup is documented in `apps/api/deploy/RUNBOOK-SETUP.md`.
 
 **How it is deployed.** The CI workflow (`.github/workflows/ci.yml`) builds the API, the web app and the image on every pull request and every push to `main`. The deploy workflow (`.github/workflows/deploy.yml`) runs only after CI succeeds for a push to `main`: it builds that exact commit, publishes the image and deploys it by digest. It authenticates with Workload Identity Federation (no key files exist) and never commits or pushes. `main` only accepts changes through pull requests.
 
