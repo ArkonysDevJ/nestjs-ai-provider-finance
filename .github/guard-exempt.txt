@@ -1,0 +1,2 @@
+# One path glob per line. Files that match are skipped by the content scan.
+# Reviewed by the repository owner. Keep this list empty unless a file needs it.
