@@ -24,7 +24,7 @@ and its public invoker binding, and the cost controls. `service.yaml` and
   strings into the chat, into a commit, into an issue or into a GitHub Actions
   secret.
 - Secret values are typed into a hidden prompt and piped to Secret Manager
-  (section 6). They never go through Railway, the repository or any file.
+  (section 6). They never go through the repository, a chat or any file.
 - Only identifiers may be committed (project id, project number, service
   account e-mails, the WIF provider resource, secret names and version
   numbers). Never a key, a token or a service-account JSON file.
@@ -138,7 +138,7 @@ retry before going on.
 3. **Supabase.** Confirm in the dashboard that the project allows **more than
    one publishable key**. The plan to give each consumer its own key depends on
    it. If it allows only one, stop and tell the author: the key rotation plan
-   changes (a single rotation for all consumers after Railway is retired).
+   changes (a single rotation for all consumers once the previous key is retired).
 
 4. **Account budget.** The existing USD 5 account budget and its alerts (50, 90,
    100 and 150 percent) are still in place. They are kept.
@@ -240,8 +240,7 @@ gcloud secrets create "$SECRET_SUPABASE" \
   the **Generative Language API** only, and confirm in that same Credentials
   page that the restriction is saved. Do **not** create it with
   `gcloud services api-keys create`: that command prints the key value. This is
-  a new key; the current one (used by Railway) is not reused and is deleted
-  during the Railway retirement.
+  a new key; the previous one is not reused and is deleted once nothing uses it.
 - **Supabase key.** In the Supabase dashboard create a new **publishable** key
   (for example `ai-finance-api-cloudrun`) for the Cloud Run API only. The web
   app and the Bruno collection get their own keys later.
