@@ -13,9 +13,9 @@
 
 import { ConfigService } from '@nestjs/config';
 import { FactoryProvider } from '@nestjs/common';
-import { AI_PROVIDER, AiProviderName } from './ai-provider.interface';
-import { GeminiProvider } from './gemini.provider';
-import { LocalProvider } from './local.provider';
+import { AI_PROVIDER, AiProviderName } from './ai-provider.interface.js';
+import { GeminiProvider } from './gemini.provider.js';
+import { LocalProvider } from './local.provider.js';
 
 export const aiProviderFactory: FactoryProvider = {
   provide: AI_PROVIDER,
