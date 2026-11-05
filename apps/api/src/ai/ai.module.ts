@@ -24,9 +24,9 @@
 
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GeminiProvider } from './gemini.provider';
-import { LocalProvider } from './local.provider';
-import { AI_PROVIDER, AiProviderName } from './ai-provider.interface';
+import { GeminiProvider } from './gemini.provider.js';
+import { LocalProvider } from './local.provider.js';
+import { AI_PROVIDER, AiProviderName } from './ai-provider.interface.js';
 
 @Module({
   providers: [

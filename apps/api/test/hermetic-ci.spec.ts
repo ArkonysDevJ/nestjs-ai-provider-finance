@@ -1,8 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = fileURLToPath(new URL('.', import.meta.url));
 
 const workflow = readFileSync(
-  join(__dirname, '..', '..', '..', '.github', 'workflows', 'ci.yml'),
+  join(here, '..', '..', '..', '.github', 'workflows', 'ci.yml'),
   'utf8',
 );
 

@@ -7,7 +7,7 @@
 import {
   AiProviderName,
   TransactionType,
-} from '../../ai/ai-provider.interface';
+} from '../../ai/ai-provider.interface.js';
 
 export interface Transaction {
   id: string;
