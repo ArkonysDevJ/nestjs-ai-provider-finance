@@ -1,6 +1,6 @@
 # Spec 002: framework upgrade
 
-Status: draft, waiting for review.
+Status: implemented on NestJS 12 (CI run pending). Open: the audit step stays informational because `fast-uri` has no closing spec.
 
 ## Goal
 
@@ -18,7 +18,7 @@ Move the API from NestJS 11 to NestJS 12, with the Fastify version that the lock
 2. The upgrade is its own pull request. It contains no other behavior change.
 3. Record `npm audit --omit=dev` before and after in the pull request.
 4. If the advisories that remain are only the ones that spec 004 removes, switch the audit step to blocking. Otherwise list each remaining advisory with the spec that closes it, and leave the step informational.
-5. Fix only what the upgrade forces (changed imports, options, types). Do not refactor.
+5. Fix only what the upgrade forces (changed imports, options, types, and the ES module switch the 12 packages require). Do not refactor.
 
 ## Contracts
 
@@ -32,9 +32,9 @@ No external contract changes: routes, request and response bodies, status codes,
 ## Acceptance criteria
 
 - **AC-1.** The test suites defined by spec 001 pass unchanged on NestJS 12.
-  - Test: CI (unit tests, database tests, Bruno).
+  - Test: CI steps "Unit tests", "Database tests" and "Integration tests (Bruno)".
 - **AC-2.** The API image builds and, after deployment, `GET /v1/health` answers 200.
-  - Test: CI image build; the deploy workflow health check.
+  - Test: CI step "Build the container image"; the deploy workflow health check.
 - **AC-3.** The HTTP contract is unchanged: the Bruno collection passes without edits to its requests or assertions.
   - Test: CI step "Integration tests (Bruno)".
 - **AC-4.** The pull request shows the audit output before and after. The audit step is blocking if and only if no advisory remains except those listed for spec 004.
