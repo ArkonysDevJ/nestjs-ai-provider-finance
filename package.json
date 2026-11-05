@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "AI provider abstraction pattern (Gemini/local, swappable via env var) demonstrated through a personal finance tracker. npm workspaces monorepo: apps/api (NestJS) + apps/web (React/Vite).",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=24.22.1"
   },

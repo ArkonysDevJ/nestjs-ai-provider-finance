@@ -192,4 +192,4 @@ Credenciales demo (cuenta de solo lectura, sin datos reales):
 
 ## Licencia
 
-MIT
+Apache License 2.0 — ver [LICENSE](./LICENSE) y [NOTICE](./NOTICE).
