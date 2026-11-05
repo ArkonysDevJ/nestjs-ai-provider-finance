@@ -23,7 +23,7 @@ Status: draft. Sections marked "pending" wait for the measured catalog of the ho
 2. Backfill existing rows (statement kept in one place so the test reuses it).
 3. Add `CHECK (amount > 0)`, `NOT VALID` first if the data requires it.
 4. Create the category/type trigger function and trigger.
-5. Create the classification guard function and trigger, after the backfill.
+5. Create the classification guard function and trigger, after the backfill. In this stage the insert rule accepts a null status; the contract stage tightens it together with `NOT NULL`.
 6. Revoke and grant per the matrix; set default privileges; fix `search_path` on `ping()` and `set_updated_at()`; revoke `DELETE`.
 7. Create the summary function and grant `EXECUTE` to `authenticated`.
 8. Create the demo identity trigger, or record the alternative.
@@ -36,9 +36,9 @@ Status: draft. Sections marked "pending" wait for the measured catalog of the ho
 
 ## Decisions
 
-- Custom SQLSTATE values (draft): `TX001` category does not apply to the type; `TX002` classification columns cannot be changed directly.
-- Guard mechanism for the contract fill: disable and re-enable the trigger inside the migration transaction (no standing exception). The alternative, an exception for the migration role, is kept in mind and decided with the DDL review.
-- The demo user id is an identifier, not a credential. Whether it is a literal in the migration or a database setting is decided with the measured inputs.
+- Custom SQLSTATE values: `TX001` category does not apply to the type; `TX002` classification columns cannot be changed directly. Both are five characters and outside the standard Postgres classes. The review of the DDL confirms them.
+- Guard mechanism for the contract fill: disable the guard trigger inside the migration transaction and re-enable it in the same transaction. It is disabled **by name** (`ALTER TABLE ... DISABLE TRIGGER <name>`), never with `ALL`, which would also turn off the foreign key triggers. No standing exception is left in the trigger code.
+- The demo user id is a literal in the migration. It is an identifier that anyone who signs in obtains, and a database setting would add state outside version control.
 - All objects schema-qualified; functions use an empty `search_path`.
 
 ## Risks

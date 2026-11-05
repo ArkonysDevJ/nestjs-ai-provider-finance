@@ -5,6 +5,6 @@
 - [ ] Keep the per-user creation limit; track by user id. (stage: 007)
 - [ ] Add the health threshold and the 429 `Retry-After` response. (stage: 007)
 - [ ] Implement CORS from `CORS_ORIGINS` and test it. (stage: 007)
-- [ ] Add the variables to `service.yaml` and `.env.example`. (stage: 007)
+- [ ] Add the variables to `service.yaml` and `.env.example`, and the test that checks `service.yaml` declares them. (stage: 007)
 - [ ] Measure the client address seen in Cloud Run (maintainer) and record it. (stage: 007)
 - [ ] Update this spec and this file with anything that changed. (stage: 007)

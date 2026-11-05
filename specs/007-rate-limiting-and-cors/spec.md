@@ -57,6 +57,8 @@ The rate limit counts each client separately behind the Cloud Run proxy, cannot 
   - Test: `apps/api/src/cors.spec.ts` (AC-8).
 - **AC-9.** In Cloud Run, the address that the service sees for a client is measured and recorded, to confirm the hop count. Live check by the maintainer.
   - Test: manual check recorded in the pull request (AC-9).
+- **AC-10.** `apps/api/deploy/service.yaml` declares the four limiter variables and `CORS_ORIGINS`, so that production never runs without a limiter or with open CORS by omission.
+  - Test: `apps/api/test/service-config.spec.ts` (AC-10).
 
 ## Out of scope
 

@@ -34,7 +34,7 @@ Move the data invariants that today live only in the API into the database, and 
 6. `CHECK (amount > 0)`. If the measured data has violating rows, add it `NOT VALID` and validate it after those rows are handled.
 7. A trigger rejects a `category_id` whose `applies_to` is neither the transaction `type` nor `both`, on insert and on update of `category_id`.
 8. A trigger guards the classification columns:
-   - on insert, the status must be `ai` or `fallback`, with the reason rule of requirement 2;
+   - on insert, in the expand stage: `classification_status` may be null, and then `classification_reason` must be null too (the running code does not write them yet), or it is `ai` or `fallback` with the reason rule of requirement 2; in the contract stage, together with `NOT NULL`, an insert requires `ai` or `fallback`;
    - on update of `category_id`, it derives the manual state: `classification_status = 'manual'`, reason null, `ai_model` null, `ai_classified = false`, `ai_provider` null;
    - any direct change of `classification_status`, `classification_reason` or `ai_model` by a client role is rejected.
 9. During this stage the update of `ai_classified` and `ai_provider` by the owner still works, because the running code still writes them.
@@ -92,8 +92,10 @@ Move the data invariants that today live only in the API into the database, and 
   - Test: `supabase/tests/database/005-category-type.test.sql` (AC-4).
 - **AC-5.** An update of `category_id` derives the manual state and clears the provenance. A direct change of the classification columns is rejected.
   - Test: `supabase/tests/database/006-classification-transitions.test.sql` (AC-5).
-- **AC-6.** At creation, a fallback without a reason and a reason without a fallback are rejected. A forged but well-formed provenance at creation is accepted, and the test documents that declared limit.
-  - Test: `supabase/tests/database/006-classification-transitions.test.sql` (AC-6).
+- **AC-6.** Creation rules, in two variants.
+  - Expand stage: an insert with a null status and a null reason succeeds; an insert with a status but a fallback without a reason, or a reason without a fallback, is rejected; a forged but well-formed provenance is accepted, and the test documents that declared limit.
+  - Contract stage: an insert with a null status is rejected; the other rules of the expand variant stay.
+  - Test: `supabase/tests/database/006-classification-transitions.test.sql`, expand and contract variants (AC-6).
 - **AC-7.** The privilege catalog matches the matrix for `anon`, `authenticated` and `PUBLIC`, at table, column and function level.
   - Test: `supabase/tests/database/002-privileges.test.sql` using `table_privs_are`, `column_privs_are` and `function_privs_are` (AC-7).
 - **AC-8.** The owner cannot delete a transaction (`42501`).
