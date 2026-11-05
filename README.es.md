@@ -161,7 +161,7 @@ Otras clasificaciones locales observadas: "Cita pediátrica" → Salud, "Uber al
 
 **Frontend:** https://nestjs-ai-provider-finance-web.vercel.app
 
-**Backend:** https://nestjs-ai-provider-finance-production.up.railway.app
+**Backend:** https://ai-finance-api-834290807468.southamerica-east1.run.app
 
 Credenciales demo (cuenta de solo lectura, sin datos reales):
 
@@ -170,25 +170,23 @@ Credenciales demo (cuenta de solo lectura, sin datos reales):
 
 ## Decisiones de despliegue
 
-**Node 24 queda fijado** (`engines: >=24.22.1`, `.nvmrc`, `.node-version`) porque 24.22.1 es la primera versión 24.x con las [correcciones de seguridad de octubre de 2026](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases). El backend lo compila Nixpacks (`railway.json`), que elige una versión de Node por su cuenta cuando el repositorio no declara ninguna.
+**Node 24 queda fijado** (`engines: >=24.22.1`, `.nvmrc`, `.node-version`) porque 24.22.1 es la primera versión 24.x con las [correcciones de seguridad de octubre de 2026](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases). La imagen base de Docker lleva exactamente la misma versión.
 
-**Por qué Docker.** El `Dockerfile` de la raíz construye la API en una imagen cuyo runtime de Node es la etiqueta base (`node:24.22.1-slim`), y no la versión que el builder resuelva en cada despliegue. Solo lleva la API compilada y sus dependencias de producción; el clasificador MCP en Python sigue siendo un servicio aparte, al que se llega por `LOCAL_AI_ENDPOINT`. Se construye con `docker build .` desde la raíz del repositorio.
+**Por qué Docker.** El `Dockerfile` de la raíz construye la API en una imagen cuyo runtime de Node es la etiqueta base (`node:24.22.1-slim`), y no la versión que un builder resuelva en cada despliegue. Solo lleva la API compilada y sus dependencias de producción; el clasificador MCP en Python sigue siendo un servicio aparte, al que se llega por `LOCAL_AI_ENDPOINT`. Se construye con `docker build .` desde la raíz del repositorio.
 
-| | Railway | Cloud Run |
-|---|---|---|
-| Costo con poco tráfico | El contenedor se cobra mientras corre, es decir, todo el tiempo salvo que se active el modo de suspensión | Escala a cero; el tiempo inactivo no se cobra |
-| Arranque en frío | Ninguno por defecto: la instancia sigue activa | La primera petición tras un periodo inactivo espera a que arranque una instancia, salvo que se mantenga un mínimo de instancias |
-| Autenticación | URL pública; el acceso lo controla la app (guard con JWT de Supabase y límite de peticiones) | Pública, o restringida por la plataforma a llamadas autenticadas con IAM |
-| Cómo se fija la versión de Node | Nixpacks lee `engines` / `.nvmrc`; con el builder Dockerfile, la etiqueta de la imagen base | La etiqueta de la imagen base de la imagen desplegada (los despliegues desde código usan buildpacks que leen `engines`) |
-| Quién compila la imagen | Railway, ejecutando en cada despliegue el build definido en `railway.json` | Uno mismo o el CI (o Cloud Build), subiéndola a un registro |
+**Dónde corre.** La API corre en Google Cloud Run, en `southamerica-east1` (São Paulo). Escala entre 0 y 2 instancias: el tiempo inactivo no se cobra, y la primera petición tras un periodo tranquilo espera a que arranque una instancia (arranque en frío). La CPU se asigna solo mientras se atiende una petición, y una petición se corta a los 60 segundos.
 
-Este repositorio despliega el backend en Railway con Nixpacks, según `railway.json`; el Dockerfile queda listo para cuando se cambie el builder, y entonces la versión de Node vendrá de la imagen y no de Nixpacks.
+**Configuración y secretos.** El servicio se describe en `apps/api/deploy/service.yaml`, con un marcador donde va la imagen. La clave de Gemini y la clave publicable de Supabase están en Secret Manager y se leen con una versión fija (nunca `latest`), de modo que rotar una clave es un despliegue. La configuración única de Google Cloud está documentada en `apps/api/deploy/RUNBOOK-D0.md`.
+
+**Cómo se despliega.** El workflow de CI (`.github/workflows/ci.yml`) compila la API, la web y la imagen en cada pull request y en cada push a `main`. El workflow de despliegue (`.github/workflows/deploy.yml`) corre solo cuando el CI termina bien para un push a `main`: compila ese commit exacto, publica la imagen y la despliega por digest. Se autentica con Workload Identity Federation (no existe ningún archivo de claves) y nunca hace commits ni push. `main` solo acepta cambios mediante pull requests.
+
+**Keep-alive.** El proyecto de Supabase del plan gratuito se pausa tras unos 7 días sin actividad, así que `/v1/health` (que llama a la función de base de datos `public.ping()`) se consulta con regularidad: por un monitor externo de disponibilidad, que es el mecanismo principal, y por `.github/workflows/keep-alive.yml` cada 2 días como respaldo. GitHub desactiva los workflows programados de un repositorio público tras 60 días sin actividad en el repositorio, y ese workflow no hace ningún commit para evitarlo, así que puede detenerse en silencio pasado ese plazo; el monitor externo sigue funcionando.
 
 **Contrato de la imagen:** escucha en `PORT` (3000 si no está definido) en `0.0.0.0`, no guarda estado local salvo los contadores del límite de peticiones en memoria (por instancia, se reinician al reiniciar; los datos están en Supabase), escribe los logs en stdout/stderr y se cierra de forma ordenada con `SIGTERM`.
 
 ## Estado
 
-✅ Desplegado — julio 2026. Backend en Railway, frontend en Vercel. Ambos caminos de `AI_PROVIDER` (Gemini y local/MCP) verificados de punta a punta. Ver "Demo en vivo" arriba para las credenciales.
+✅ Desplegado — julio 2026. Backend en Google Cloud Run (migrado desde Railway en noviembre de 2026), frontend en Vercel. Ambos caminos de `AI_PROVIDER` (Gemini y local/MCP) verificados de punta a punta. Ver "Demo en vivo" arriba para las credenciales.
 
 ✅ Auditoría de seguridad — agosto 2026. Una revisión independiente encontró que la suite de tests original solo cubría el happy path, sin cobertura negativa/adversarial. Cerrado: se agregó `FORCE ROW LEVEL SECURITY` en `categories`/`transactions`, se probó el aislamiento cross-user de RLS tanto vía peticiones directas a PostgREST (evitando el backend) como con una suite pgTAP a nivel SQL, se eliminó un flag `credentials: true` de CORS que estaba muerto (el frontend de este proyecto usa exclusivamente Bearer tokens, nunca cookies, así que el flag no tenía efecto pero era confuso dejarlo), y se limitó `POST /transactions` por usuario y por IP para acotar el gasto en la API de Gemini (ver "API" arriba). Verificado de punta a punta, incluyendo el bypass de cuenta recién creada en un límite ingenuo solo-por-usuario.
 

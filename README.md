@@ -161,7 +161,7 @@ Other local classifications observed: "Cita pediátrica" → Salud, "Uber al hos
 
 **Frontend:** https://nestjs-ai-provider-finance-web.vercel.app
 
-**Backend:** https://nestjs-ai-provider-finance-production.up.railway.app
+**Backend:** https://ai-finance-api-834290807468.southamerica-east1.run.app
 
 Demo credentials (read-only account, no real data):
 
@@ -170,25 +170,23 @@ Demo credentials (read-only account, no real data):
 
 ## Deployment decisions
 
-**Node 24 is pinned** (`engines: >=24.22.1`, `.nvmrc`, `.node-version`) because 24.22.1 is the first 24.x release with the [October 2026 security fixes](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases). The backend is built by Nixpacks (`railway.json`), which chooses a Node version by itself when the repository does not declare one.
+**Node 24 is pinned** (`engines: >=24.22.1`, `.nvmrc`, `.node-version`) because 24.22.1 is the first 24.x release with the [October 2026 security fixes](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases). The Docker base image carries the same exact version.
 
-**Why Docker.** The root `Dockerfile` builds the API into an image whose Node runtime is the base tag (`node:24.22.1-slim`), not whatever version the builder resolves on a given deploy. It ships only the compiled API and its production dependencies; the Python MCP classifier stays a separate service reached through `LOCAL_AI_ENDPOINT`. Build it with `docker build .` from the repository root.
+**Why Docker.** The root `Dockerfile` builds the API into an image whose Node runtime is the base tag (`node:24.22.1-slim`), not whatever version a builder resolves on a given deploy. It ships only the compiled API and its production dependencies; the Python MCP classifier stays a separate service reached through `LOCAL_AI_ENDPOINT`. Build it with `docker build .` from the repository root.
 
-| | Railway | Cloud Run |
-|---|---|---|
-| Cost with little traffic | The container is billed while it runs, which is all the time unless sleeping is enabled | Scales to zero; idle time is not billed |
-| Cold start | None by default: the instance stays up | The first request after idle waits for an instance to start, unless a minimum instance count is kept |
-| Authentication | Public URL; the app enforces access (Supabase JWT guard plus rate limiting) | Public, or restricted by the platform to IAM-authenticated callers |
-| How the Node version is pinned | Nixpacks reads `engines` / `.nvmrc`; with a Dockerfile builder, the base image tag | The base image tag of the deployed image (source deploys use buildpacks that read `engines`) |
-| Who builds the image | Railway, running the build defined in `railway.json` on every deploy | You or your CI (or Cloud Build), pushing to a registry |
+**Where it runs.** The API runs on Google Cloud Run in `southamerica-east1` (São Paulo). It scales between 0 and 2 instances: idle time is not billed, and the first request after a quiet period waits for an instance to start (cold start). CPU is allocated only while a request is being handled, and a request is cut after 60 seconds.
 
-This repository deploys the backend on Railway with Nixpacks, as configured in `railway.json`; the Dockerfile is ready for the moment the builder is switched, so the Node version then comes from the image instead of from Nixpacks.
+**Configuration and secrets.** The service is described in `apps/api/deploy/service.yaml`, with a marker where the image goes. The Gemini key and the Supabase publishable key live in Secret Manager and are read at a pinned version (never `latest`), so rotating a key is a deployment. The one-time Google Cloud setup is documented in `apps/api/deploy/RUNBOOK-D0.md`.
+
+**How it is deployed.** The CI workflow (`.github/workflows/ci.yml`) builds the API, the web app and the image on every pull request and every push to `main`. The deploy workflow (`.github/workflows/deploy.yml`) runs only after CI succeeds for a push to `main`: it builds that exact commit, publishes the image and deploys it by digest. It authenticates with Workload Identity Federation (no key files exist) and never commits or pushes. `main` only accepts changes through pull requests.
+
+**Keep-alive.** The free-tier Supabase project pauses after about 7 days without activity, so `/v1/health` (which calls the database function `public.ping()`) is requested regularly: by an external uptime monitor, which is the primary mechanism, and by `.github/workflows/keep-alive.yml` every 2 days as a backup. GitHub disables scheduled workflows in a public repository after 60 days without repository activity, and that workflow does not commit anything to prevent it, so it can stop silently after that time; the external monitor keeps working.
 
 **Image contract:** listens on `PORT` (3000 if unset) on `0.0.0.0`, keeps no local state other than in-memory rate-limit counters (per instance, reset on restart; data lives in Supabase), logs to stdout/stderr, and shuts down cleanly on `SIGTERM`.
 
 ## Status
 
-✅ Deployed — July 2026. Backend on Railway, frontend on Vercel. Both `AI_PROVIDER` paths (Gemini and local/MCP) verified end-to-end. See "Live demo" above for credentials.
+✅ Deployed — July 2026. Backend on Google Cloud Run (moved from Railway in November 2026), frontend on Vercel. Both `AI_PROVIDER` paths (Gemini and local/MCP) verified end-to-end. See "Live demo" above for credentials.
 
 ✅ Security audit — August 2026. Independent review found the original test suite covered only the happy path, with no negative/adversarial coverage. Closed: `FORCE ROW LEVEL SECURITY` added on `categories`/`transactions`, RLS cross-user isolation proven both via direct PostgREST requests (bypassing the backend) and a pgTAP suite at the SQL level, a dead `credentials: true` CORS flag removed (this project's frontend uses Bearer tokens exclusively, never cookies, so the flag had no effect but was misleading to leave in place), and `POST /transactions` rate-limited per-user and per-IP to bound Gemini API spend (see "API" above). Verified end-to-end, including the freshly-created-account bypass on a naive per-user-only limit.
 
