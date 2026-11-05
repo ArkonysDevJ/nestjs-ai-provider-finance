@@ -1,0 +1,38 @@
+# Local development stack for the Supabase CLI (`supabase start`).
+# Used by CI and by developers. It never points at the hosted project.
+project_id = "nestjs-ai-provider-finance"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+# Must equal the value of the hosted project. 1000 is the platform default; it
+# is replaced by the measured hosted value as soon as that value is available.
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Must equal the Postgres major version of the hosted project. It is replaced
+# by the measured hosted value as soon as that value is available.
+major_version = 17
+
+[db.migrations]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 6
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# Local users are created by `bruno/setup-local.sh` and must be able to sign in
+# without a confirmation e-mail.
+enable_confirmations = false
