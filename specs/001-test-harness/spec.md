@@ -1,6 +1,6 @@
 # Spec 001: test harness
 
-Status: draft, waiting for review.
+Status: implemented. Open items: the Postgres major version and the API row cap in `supabase/config.toml` are provisional until the measured hosted values arrive, and the CI steps that need Docker have not yet run in GitHub Actions.
 
 ## Goal
 
@@ -35,7 +35,8 @@ Make the project testable from a clean clone. Unit tests, database tests and HTT
 
 ## Edge cases
 
-- Two Bruno requests sign in as two different demo users. Locally, the setup script creates them through the Auth sign-up endpoint with the publishable key. It never uses an admin key.
+- Two Bruno requests sign in as two different users, with the example credentials that those requests already carry. Locally, `bruno/setup-local.sh users` creates them through the Auth sign-up endpoint with the publishable key. It never uses an admin key and refuses to run against a non-loopback host.
+- The "reclassify" request needs a transaction id and a category id that are picked by hand when the collection runs by hand. In CI, `bruno/setup-local.sh fixtures` creates one transaction through the local API and reads the id of the "Otros" category, and the workflow passes both ids to the run. The requests themselves do not change.
 - The CI database stack excludes services the project does not use, to keep the job short.
 - The Supabase CLI and the Bruno CLI are pinned by version. The Bruno CLI is installed outside the repository with install scripts disabled.
 

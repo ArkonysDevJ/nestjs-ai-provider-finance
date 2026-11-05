@@ -26,7 +26,7 @@ Runtime: Node.js >= 24.22.1. Production: Google Cloud Run (API) and Vercel (web)
 | Audit production dependencies | `npm audit --omit=dev` |
 | Build the API image | `docker build .` |
 
-Available after `specs/001-test-harness` is implemented:
+Test and quality commands:
 
 | Task | Command |
 | --- | --- |
@@ -34,9 +34,11 @@ Available after `specs/001-test-harness` is implemented:
 | Lint, format check | `npm run lint`, `npm run format:check` |
 | Start the local database stack | `supabase start` (needs Docker) |
 | Database tests | `supabase test db` |
-| HTTP tests | Bruno collection in `bruno/`, using only the local environment |
+| Local users and fixtures for the HTTP tests | `bash bruno/setup-local.sh users`, then `bash bruno/setup-local.sh fixtures` (local stack only) |
+| HTTP tests | Bruno collection in `bruno/`, using only the `local-stack` environment |
+| Acceptance criteria coverage | `node scripts/check-ac-coverage.mjs` |
 
-Until a command exists, do not invent a replacement. If a command in this table fails or is missing, say so in your pull request.
+If a command in this table fails or is missing, say so in your pull request. Do not invent a replacement.
 
 ## Repository map
 
