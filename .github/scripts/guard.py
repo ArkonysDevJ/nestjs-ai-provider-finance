@@ -35,7 +35,7 @@ ID_PATTERNS = [
 ]
 SESSION_PATTERN = re.compile(r"claude\.ai/code/session")
 TRAILER_PATTERN = re.compile(
-    r"^\s*(co-authored-by|generated-by|assisted-by|claude-session)\s*:"
+    r"^\s*(co-authored-by|generated-by|assisted-by|claude-session|signed-off-by)\s*:"
     r"|generated with \[?claude",
     re.IGNORECASE | re.MULTILINE,
 )
@@ -185,6 +185,7 @@ def self_test():
         results.append(("id pattern", "b.txt:3 id-pattern" in joined))
         results.append(("branch and alias exempt", "c.txt" not in joined))
         results.append(("trailer", "attribution-trailer" in joined))
+        results.append(("sign-off trailer", bool(TRAILER_PATTERN.search("fix: x\n\nSigned-off-by: A <a@example.invalid>"))))
         results.append(("term in body", "pr-body:1 term#1" in joined))
         results.append(("matched text never printed", "zxqwv" not in joined.lower() and "plugh" not in joined.lower()))
         os.chdir(original)

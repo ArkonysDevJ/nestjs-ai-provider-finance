@@ -100,14 +100,25 @@ jobs:
       - name: Identity, attribution, closed list and identifier patterns
         run: python3 -I .github/scripts/guard.py
 
-      # Runs in redacted mode: findings never print the secret that matched. The
-      # scanner version is pinned; the artifact upload, the summary and the pull
-      # request comments are off.
+      # Secret scanner. The release archive is checked against a fixed SHA-256
+      # before it is unpacked, and the scanner runs in redacted mode: findings
+      # never print the secret that matched. Nothing is uploaded.
       - name: Secret scan
-        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_VERSION: 8.30.1
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
-          GITLEAKS_ENABLE_SUMMARY: "false"
-          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          set -euo pipefail
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location --max-time 120 \
+            --output "${RUNNER_TEMP}/${archive}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum --check --strict -
+          mkdir "${RUNNER_TEMP}/gitleaks"
+          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}/gitleaks" gitleaks
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            range="${BASE_SHA}..${HEAD_SHA}"
+          else
+            range="-1"
+          fi
+          "${RUNNER_TEMP}/gitleaks/gitleaks" detect --source . --redact --no-banner --exit-code 2 --log-opts="${range}"
