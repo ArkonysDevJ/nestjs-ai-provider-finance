@@ -62,6 +62,12 @@ Make the outcome of a classification explicit and testable. A provider failure i
     - each provider is tested against a narrow interface of its own (for Gemini, a `generate` function that takes the prompt and the timeout and returns text and model). The SDK module is not mocked.
 17. The provider tests cover at least these cases: an exact category; a category with different case or surrounding whitespace; unrecognized text; a quota error (402 and 429); a timeout; and any other error.
 
+## Contracts
+
+- Port: `classify(input)` returns `{ status: 'ai', categoryName, model }` or `{ status: 'fallback', categoryName: 'Otros', reason, model }`, with `reason` in `provider_error`, `timeout`, `quota_exceeded`, `invalid_output`.
+- Environment variables: `AI_PROVIDER` (`gemini` or `local`), the model variable (required for `gemini`), `AI_TIMEOUT_MS`, `GEMINI_API_KEY`, `LOCAL_AI_ENDPOINT`.
+- Persistence: the columns of spec 003; `ai_classified` and `ai_provider` keep their current meaning.
+
 ## Edge cases
 
 - The category must belong to the allowed list of the transaction type. A category valid for the other type is `invalid_output`.
