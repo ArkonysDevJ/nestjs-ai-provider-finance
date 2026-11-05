@@ -4,7 +4,10 @@
 // @changelog 1.0.0 — Row shape returned by public.transactions.
 //   Mirrors the schema in supabase/migrations/.
 
-import { AiProviderName, TransactionType } from '../../ai/ai-provider.interface';
+import {
+  AiProviderName,
+  TransactionType,
+} from '../../ai/ai-provider.interface';
 
 export interface Transaction {
   id: string;

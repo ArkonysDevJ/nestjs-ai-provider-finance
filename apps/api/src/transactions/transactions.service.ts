@@ -89,10 +89,7 @@ export class TransactionsService {
       type: dto.type,
     });
 
-    const categories = await this.categoriesService.findAll(
-      supabase,
-      dto.type,
-    );
+    const categories = await this.categoriesService.findAll(supabase, dto.type);
     const resolvedCategory =
       categories.find(
         (c) =>

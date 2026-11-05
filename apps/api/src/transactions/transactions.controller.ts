@@ -19,7 +19,16 @@
 //   POST /transactions/:id/reclassify, GET /transactions/summary.
 //   All protected by SupabaseAuthGuard.
 
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
