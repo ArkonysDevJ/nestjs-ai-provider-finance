@@ -1,12 +1,13 @@
 # D0 runbook: one-time Google Cloud setup for the API
 
-Status: **executed by the repository owner on 3 and 4 November 2026**, with one
-deviation: the Workload Identity provider is named `github-ai-finance`, because
-the name first planned for it (`github-nestjs-ai-provider-finance`) has 33
-characters and Google accepts at most 32. This file uses the name that was
-applied. The repository owner runs every step with their own account; no
-credentials, key values or Google Cloud access are ever shared with the author
-of this file.
+Status: **executed by the repository owner on 3 and 4 November 2026**, with two
+deviations. First, the Workload Identity provider is named `github-ai-finance`,
+because the name first planned for it (`github-nestjs-ai-provider-finance`) has
+33 characters and Google accepts at most 32; this file uses the name that was
+applied. Second, the Gemini API key that already existed in the project was
+loaded into Secret Manager, instead of creating a second one. The repository
+owner runs every step with their own account; no credentials, key values or
+Google Cloud access are ever shared with the author of this file.
 
 **Where to run it:** in Cloud Shell (bash with `gcloud` already signed in to
 the project). The owner works on Windows, so commands are written for bash and
@@ -233,14 +234,14 @@ gcloud secrets create "$SECRET_SUPABASE" \
 
 ### 6.1 Create the keys
 
-- **Gemini key.** Create a new API key (name it for example
-  `ai-finance-cloudrun`) in the Google Cloud console, under APIs and Services,
-  Credentials, with the project "AI Provider Portafolio" selected in the
-  project picker; or in AI Studio, choosing that same project. Restrict it to
-  the **Generative Language API** only, and confirm in that same Credentials
-  page that the restriction is saved. Do **not** create it with
-  `gcloud services api-keys create`: that command prints the key value. This is
-  a new key; the previous one is not reused and is deleted once nothing uses it.
+- **Gemini key.** Use an API key of the project "AI Provider Portafolio". It can
+  be created in the Google Cloud console, under APIs and Services, Credentials,
+  with the project selected in the project picker; or in AI Studio, choosing
+  that same project. Restrict it to the **Generative Language API** only, and
+  confirm in that same Credentials page that the restriction is saved. Do
+  **not** create it with `gcloud services api-keys create`: that command prints
+  the key value. In the execution recorded above, the project's existing key was
+  loaded into the secret instead of creating a second one.
 - **Supabase key.** In the Supabase dashboard create a new **publishable** key
   (for example `ai-finance-api-cloudrun`) for the Cloud Run API only. The web
   app and the Bruno collection get their own keys later.
@@ -540,12 +541,12 @@ The Gemini quota override and the project spending cap (section 11) are not
 removed by these commands. They survive the undo: revert them by hand in the
 console if they must go.
 
-The two new keys are revoked separately, outside `gcloud`:
+The keys used by the service are revoked separately, outside `gcloud`:
 
-- the new **Gemini** key (for example `ai-finance-cloudrun`), in the Google
-  Cloud console under APIs and Services, Credentials, or in AI Studio;
-- the new **Supabase publishable** key (for example `ai-finance-api-cloudrun`),
-  in the Supabase dashboard.
+- the **Gemini** key, in the Google Cloud console under APIs and Services,
+  Credentials, or in AI Studio (only if nothing else uses it);
+- the **Supabase publishable** key created for the service (for example
+  `ai-finance-api-cloudrun`), in the Supabase dashboard.
 
 Deleted workload identity pools and service accounts stay in soft-delete for
 about 30 days, and during that time their ID cannot be reused. To run the setup
