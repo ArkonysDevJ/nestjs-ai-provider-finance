@@ -6,8 +6,17 @@
 //   the AI (or falls back to "Otros"). TransactionType lives in
 //   ai-provider.interface and isn't redeclared here.
 
-import { IsDateString, IsIn, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, MaxLength } from 'class-validator';
-import { TransactionType } from '../../ai/ai-provider.interface';
+import {
+  IsDateString,
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  MaxLength,
+} from 'class-validator';
+import { TransactionType } from '../../ai/ai-provider.interface.js';
 
 export class CreateTransactionDto {
   @IsString()

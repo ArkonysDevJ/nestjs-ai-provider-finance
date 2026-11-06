@@ -1,6 +1,8 @@
 // src/common/guards/user-throttler.guard.ts
 // [F-ID: SRC-GUARD-USER-THROTTLER-01]
-// @version 1.0.0
+// @version 1.0.1
+// @changelog 1.0.1 — Lint annotation only: the override keeps the signature of the
+//   base class, which uses `any`. No behavior change.
 // @changelog 1.0.0 — Rate limits by authenticated user id instead of the
 //   default IP-based tracking. Motivation: POST /transactions calls the
 //   Gemini API on every request (AI_PROVIDER=gemini classifies inline) --
@@ -24,6 +26,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 
 @Injectable()
 export class UserThrottlerGuard extends ThrottlerGuard {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same signature as the base class
   protected async getTracker(req: Record<string, any>): Promise<string> {
     return req.user?.id ?? req.ip;
   }

@@ -8,11 +8,11 @@
 //   SupabaseAuthGuard (standard pattern, see guard).
 
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
-import { CurrentSupabase } from '../common/decorators/supabase-client.decorator';
+import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard.js';
+import { CurrentSupabase } from '../common/decorators/supabase-client.decorator.js';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { CategoriesService } from './categories.service';
-import { Category } from './entities/category.entity';
+import { CategoriesService } from './categories.service.js';
+import { Category } from './entities/category.entity.js';
 
 @Controller('categories')
 @UseGuards(SupabaseAuthGuard)

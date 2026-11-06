@@ -1,7 +1,9 @@
-# Builds the API and the web app, builds the container image, and reports the
-# state of the production dependencies. Nothing here touches the deployed demo
-# or its database. There is no test step yet: the repository has no unit tests
-# and the database tests do not run from a clean checkout.
+# Checks the code from a clean checkout: lint, format, build, unit tests, the
+# database tests (pgTAP) and the HTTP tests (Bruno) against a local database
+# stack, and the container image. It also reports the state of the production
+# dependencies. Nothing here touches the deployed demo, its database or any
+# external service: the API runs with the local provider against a fake
+# classifier on loopback, so no key and no network call to Google are needed.
 #
 # The job named `ci` builds and checks the code. The job named `guard` checks who
 # wrote the commits, what the commit messages, the pull request text and the
@@ -31,7 +33,7 @@ jobs:
   ci:
     name: ci
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -47,11 +49,81 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
       - name: Build API
         run: npm run build:api
 
       - name: Build web
         run: npm run build:web
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Acceptance criteria coverage
+        run: node scripts/check-ac-coverage.mjs
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with:
+          version: 2.101.0
+
+      # Only the services the project uses; the others would only slow the job.
+      - name: Start local Supabase
+        run: supabase start --exclude studio,imgproxy,mailpit,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta
+
+      - name: Database tests
+        run: supabase test db
+
+      # The URL and the publishable key of the local stack are local-only
+      # values. They are masked and passed to the later steps.
+      - name: Read the local stack settings
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY)=')"
+          echo "::add-mask::${ANON_KEY}"
+          echo "SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
+          echo "SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+
+      - name: Create the local test users
+        run: bash bruno/setup-local.sh users
+
+      # The API runs with the local provider against a fake classifier on
+      # loopback. It never calls Google and needs no key.
+      - name: Start the fake classifier and the API
+        run: |
+          set -euo pipefail
+          nohup node apps/api/test/support/fake-mcp-server.cjs > "${RUNNER_TEMP}/fake-mcp.log" 2>&1 &
+          NODE_ENV=test AI_PROVIDER=local LOCAL_AI_ENDPOINT=http://127.0.0.1:8765/mcp PORT=3000 \
+            nohup node apps/api/dist/main.js > "${RUNNER_TEMP}/api.log" 2>&1 &
+          curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-connrefused \
+            http://127.0.0.1:3000/v1/health
+
+      - name: Create the local test fixtures
+        run: bash bruno/setup-local.sh fixtures >> "$GITHUB_ENV"
+
+      # The CLI is installed outside the repository, with install scripts
+      # disabled, and run from the collection folder.
+      - name: Install Bruno CLI
+        run: npm install --prefix "${RUNNER_TEMP}/bru" --ignore-scripts --no-audit --no-fund @usebruno/cli@4.3.0
+
+      - name: Integration tests (Bruno)
+        working-directory: bruno/nestjs-ai-provider-finance
+        run: |
+          set -euo pipefail
+          node "${RUNNER_TEMP}/bru/node_modules/@usebruno/cli/bin/bru.js" run auth categories transactions security-tests \
+            --env local-stack \
+            --env-var "supabaseAnonKey=${SUPABASE_ANON_KEY}" \
+            --env-var "select_transaction_id=${SELECT_TRANSACTION_ID}" \
+            --env-var "manual_category_id=${MANUAL_CATEGORY_ID}"
+
+      - name: API log
+        if: failure()
+        run: cat "${RUNNER_TEMP}/api.log" || true
 
       # The deploy workflow builds this same Dockerfile, so it must keep
       # building. Here the image is only built, not pushed or run.

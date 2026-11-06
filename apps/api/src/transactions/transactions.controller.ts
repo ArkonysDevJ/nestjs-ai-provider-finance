@@ -19,22 +19,31 @@
 //   POST /transactions/:id/reclassify, GET /transactions/summary.
 //   All protected by SupabaseAuthGuard.
 
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
-import { UserThrottlerGuard } from '../common/guards/user-throttler.guard';
-import { CurrentSupabase } from '../common/decorators/supabase-client.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import type { AuthenticatedUser } from '../common/guards/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard.js';
+import { UserThrottlerGuard } from '../common/guards/user-throttler.guard.js';
+import { CurrentSupabase } from '../common/decorators/supabase-client.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import type { AuthenticatedUser } from '../common/guards/supabase-auth.guard.js';
 import {
   TransactionsService,
   TransactionWithCategory,
-} from './transactions.service';
-import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { ReclassifyTransactionDto } from './dto/reclassify-transaction.dto';
-import { SummaryResponse } from './dto/summary-response.dto';
-import { Transaction } from './entities/transaction.entity';
+} from './transactions.service.js';
+import { CreateTransactionDto } from './dto/create-transaction.dto.js';
+import { ReclassifyTransactionDto } from './dto/reclassify-transaction.dto.js';
+import { SummaryResponse } from './dto/summary-response.dto.js';
+import { Transaction } from './entities/transaction.entity.js';
 
 @Controller('transactions')
 @UseGuards(SupabaseAuthGuard)

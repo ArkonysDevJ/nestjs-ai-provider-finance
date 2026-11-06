@@ -26,7 +26,7 @@ import {
   ClassificationInput,
   ClassificationResult,
   FALLBACK_CATEGORY,
-} from './ai-provider.interface';
+} from './ai-provider.interface.js';
 
 @Injectable()
 export class GeminiProvider implements AIProvider {

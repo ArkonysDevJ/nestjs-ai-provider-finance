@@ -4,7 +4,7 @@
 // @changelog 1.0.0 — Extracts the user attached by SupabaseAuthGuard.
 
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import type { AuthenticatedUser } from '../guards/supabase-auth.guard';
+import type { AuthenticatedUser } from '../guards/supabase-auth.guard.js';
 
 export const CurrentUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): AuthenticatedUser => {

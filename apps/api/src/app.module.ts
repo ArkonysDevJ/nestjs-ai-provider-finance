@@ -30,9 +30,9 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { TransactionsModule } from './transactions/transactions.module';
-import { CategoriesModule } from './categories/categories.module';
-import { HealthModule } from './health/health.module';
+import { TransactionsModule } from './transactions/transactions.module.js';
+import { CategoriesModule } from './categories/categories.module.js';
+import { HealthModule } from './health/health.module.js';
 
 @Module({
   imports: [
