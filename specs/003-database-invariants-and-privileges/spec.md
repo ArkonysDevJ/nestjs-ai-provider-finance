@@ -1,6 +1,6 @@
 # Spec 003: database invariants and privileges
 
-Status: draft. The DDL in `plan.md` stays a draft until the measured catalog of the hosted database is attached to this spec.
+Status: draft. The measured catalog of the hosted database is attached below (read-only queries, 2026-11-07). The DDL in `plan.md` stays a draft until the review of the privilege change, which also settles the open points listed in this spec.
 
 ## Goal
 
@@ -15,9 +15,51 @@ Move the data invariants that today live only in the API into the database, and 
 - The update policy lets the owner change any column of an own row, including `ai_classified`, `ai_provider`, `type`, `category_id` and `amount`.
 - Nothing in the database ties `category_id` to the transaction `type`. Only the API checks it, and only on reclassification.
 - The failure of an AI provider is stored as a classification: "Otros", `ai_classified = true` and the provider name. There is no way to tell a real classification from a fallback.
-- Grants are partial: `authenticated` has `SELECT` on `categories` and full CRUD on `transactions`. On hosted Supabase new tables get no implicit grants; on the local CLI they do. `ping()` is `SECURITY DEFINER` with `search_path = public` and does not revoke `EXECUTE` from `PUBLIC`. `set_updated_at()` does not fix `search_path`.
+- Grants are partial and wider than the API needs: `authenticated` has `SELECT` on `categories` and full CRUD on `transactions`, and `anon`, `authenticated` and `service_role` also hold `REFERENCES`, `TRIGGER` and `TRUNCATE` on both tables (see the measured catalog). On hosted Supabase new tables get no implicit grants; on the local CLI they do. `ping()` is `SECURITY DEFINER` with `search_path = public` and does not revoke `EXECUTE` from `PUBLIC`. `set_updated_at()` does not fix `search_path`. A third function, `rls_auto_enable()`, exists in `public` and is not covered by the requirements below.
 - The demo account has full CRUD and public credentials. Any visitor can change its password through Auth.
 - The summary is computed in the API from a full table read.
+
+## Measured hosted catalog (2026-11-07)
+
+Read-only queries against the hosted project, each inside `begin read only; ... rollback;`. They return catalog data and counts only, never row contents or key values.
+
+**Privileges on tables** (`information_schema.role_table_grants`; column privileges repeat the table grants on every column):
+
+| Table | `anon` | `authenticated` | `service_role` |
+| --- | --- | --- | --- |
+| `categories` | references, trigger, truncate | select, references, trigger, truncate | references, trigger, truncate |
+| `transactions` | references, trigger, truncate | select, insert, update, delete, references, trigger, truncate | references, trigger, truncate |
+
+**Functions in `public`:**
+
+| Function | Owner | Definer | Volatility | `search_path` | ACL |
+| --- | --- | --- | --- | --- | --- |
+| `ping()` | `postgres` | yes | volatile | `public` | `PUBLIC`, `postgres` and `anon` execute |
+| `set_updated_at()` | `postgres` | no | volatile | not fixed | default (`PUBLIC` executes) |
+| `rls_auto_enable()` | `postgres` | yes | volatile | `pg_catalog` | default (`PUBLIC` executes) |
+
+**Default privileges in `public`:**
+
+| Role that creates the object | Tables | Functions | Sequences |
+| --- | --- | --- | --- |
+| `postgres` | owner full; `anon`, `authenticated`, `service_role`: truncate, references, trigger, maintain | owner only | owner only |
+| `supabase_admin` | owner, `anon`, `authenticated`, `service_role`: all table privileges | execute for all four | usage and read/write for all four |
+
+**Row Level Security:** enabled and forced on `categories` and `transactions`. Policies: `categories_select_authenticated` (select, `true`); `transactions_select_own`, `transactions_delete_own` (`auth.uid() = user_id`), `transactions_insert_own` (check `auth.uid() = user_id`) and `transactions_update_own` (using and check `auth.uid() = user_id`).
+
+**`transactions`:** one trigger (`trg_transactions_updated_at`, before update). Constraints: primary key, `type` in (`income`, `expense`), `ai_provider` in (`gemini`, `local`) or null, foreign key to `categories(id)` without cascade, foreign key to `auth.users(id)` with `ON DELETE CASCADE`. No check on `amount`, no category/type trigger.
+
+**Data (counts only):** 95 rows, none with `amount <= 0`. By `ai_classified` and `ai_provider`: 5 with `false` and no provider, 37 with `true` and `gemini`, 53 with `true` and `local`.
+
+**Platform:** Postgres 17.6. Role settings: `anon` `statement_timeout` 3 s; `authenticated` 8 s; `authenticator` 8 s plus `lock_timeout` 8 s, with `supautils` and `safeupdate` preloaded. `postgres` holds `TRIGGER` on `auth.users` (owned by `supabase_auth_admin`), and there is no trigger in the `auth` schema today.
+
+**Data API:** `max_rows` 1000; exposed schemas `public` and `graphql_public`; extra search path `public, extensions`.
+
+**Auth:** sign-up enabled; e-mail confirmation required; anonymous sign-ins off; password minimum length 6, no required character classes; access token lifetime 3600 s; refresh token rotation on, reuse interval 10 s; built-in e-mail limit 2 per hour; limits per hour for tokens 150, verification 30, one-time codes 30, anonymous users 30; the configured site URL is `http://localhost:3000`.
+
+**Demo account:** its user id is `94f56c85-36dd-4feb-89ae-92254754fc93`. It is an identifier, not a credential.
+
+**Local stack comparison** (`supabase/config.toml`): major version 17, `max_rows` 1000, token lifetime 3600 s, sign-up enabled and password minimum 6 match the hosted values. They differ in e-mail confirmation (off locally so the test users can sign in without a mailbox) and in the site URL (a loopback address). The catalog-level comparison needs the local stack and is recorded in the pull request of the expand stage.
 
 ## Requirements
 
@@ -25,13 +67,13 @@ Move the data invariants that today live only in the API into the database, and 
 
 1. Add `classification_status` (`text`, check in `ai`, `fallback`, `manual`, `legacy`), `classification_reason` (`text`, check in `provider_error`, `timeout`, `quota_exceeded`, `invalid_output`) and `ai_model` (`text`, nullable).
 2. `classification_reason` is set if and only if `classification_status = 'fallback'`.
-3. Existing rows are filled before any trigger that guards these columns is created, in the same migration: rows with `ai_classified = false` become `manual`; rows with `ai_classified = true` become `legacy`. The final mapping follows the measured distribution of the hosted data.
+3. Existing rows are filled before any trigger that guards these columns is created, in the same migration: rows with `ai_classified = false` become `manual`; rows with `ai_classified = true` become `legacy`. The measured distribution is 5 rows with `ai_classified = false` and 90 with `true`, so the mapping gives 5 `manual` and 90 `legacy` rows.
 4. `classification_status` stays nullable in this stage. Rows created between this stage and the deployment of spec 004 have it null, because the running code does not write it.
 5. `ai_classified` keeps its current meaning. It is not reinterpreted.
 
 ### Invariants (expand)
 
-6. `CHECK (amount > 0)`. If the measured data has violating rows, add it `NOT VALID` and validate it after those rows are handled.
+6. `CHECK (amount > 0)`. The measured data has no violating rows, so the check is added validated, in one step. If a later measurement finds violating rows, it is added `NOT VALID` and validated after those rows are handled.
 7. A trigger rejects a `category_id` whose `applies_to` is neither the transaction `type` nor `both`, on insert and on update of `category_id`.
 8. A trigger guards the classification columns:
    - on insert, in the expand stage: `classification_status` may be null, and then `classification_reason` must be null too (the running code does not write them yet), or it is `ai` or `fallback` with the reason rule of requirement 2; in the contract stage, together with `NOT NULL`, an insert requires `ai` or `fallback`;
@@ -42,7 +84,7 @@ Move the data invariants that today live only in the API into the database, and 
 
 ### Privileges (expand)
 
-11. Revoke all privileges on the `public` tables and functions from `anon`, `authenticated` and `PUBLIC`, then grant exactly the matrix below. Set default privileges so that new objects in `public` start with none. Revoke `EXECUTE` on functions from `PUBLIC` by default.
+11. Revoke all privileges on the `public` tables and functions from `anon`, `authenticated` and `PUBLIC`, including the `REFERENCES`, `TRIGGER` and `TRUNCATE` privileges found in the measured catalog, then grant exactly the matrix below. Set default privileges so that new objects in `public` start with none. Revoke `EXECUTE` on functions from `PUBLIC` by default.
 12. Fix `search_path` on `ping()` and on `set_updated_at()`.
 
 | Object | `anon` | `authenticated` | `PUBLIC` |
@@ -79,6 +121,16 @@ Move the data invariants that today live only in the API into the database, and 
 - Concurrent inserts during the expand migration: the migration runs in one transaction and takes the locks it needs; the plan lists them.
 - A reclassification to a category that does not apply to the type is rejected by the trigger even if the API check is removed.
 - Updating `amount`, `type` or `description` is not an API feature. After the contract stage the client roles cannot do it either.
+
+## Open points for the review
+
+The measured catalog raises points that the requirements do not settle. The review of the privilege change decides each one before the DDL is final.
+
+1. **`rls_auto_enable()`.** It is `SECURITY DEFINER` and executable by `PUBLIC`, and no requirement names it. Requirement 11 would revoke `EXECUTE` from `PUBLIC` on it by default. Its definition has not been read, so what it is for, and whether the revoke is safe, is not known yet.
+2. **Default privileges of `supabase_admin`.** Objects created by that role in `public` start with all privileges for `anon`, `authenticated` and `service_role`. Whether the migration role can change those defaults on hosted Supabase is not known. If it cannot, the requirement "new objects start with none" holds for objects created by the migration role only, and AC-14 states that limit.
+3. **`service_role`.** It holds `REFERENCES`, `TRIGGER` and `TRUNCATE` and no data privileges. The matrix does not list it. The review decides whether it is revoked too or left to the platform.
+4. **The `DELETE` policy on `transactions`.** Requirement 10 removes the privilege and leaves the policy in place, dead. The review decides whether the policy is dropped in the contract stage or kept as a second barrier.
+5. **Auth settings.** Open sign-up, a 6-character minimum, no required character classes and a loopback site URL are not changed by this spec. They are recorded here as input for the README and for a separate decision of the maintainer.
 
 ## Acceptance criteria
 
