@@ -1,4 +1,4 @@
-# D0 runbook: one-time Google Cloud setup for the API
+# Setup runbook: one-time Google Cloud setup for the API
 
 Status: **executed by the repository owner on 3 and 4 November 2026**, with two
 deviations. First, the Workload Identity provider is named `github-ai-finance`,
