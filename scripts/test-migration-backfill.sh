@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Checks the data steps of spec 003 on sample rows, against the local stack:
 #
-#   1. reset the local database to the version before the expand migration;
+#   1. reset the local database to the state before the expand migration (the
+#      expand migration is the last file of supabase/migrations at this stage);
 #   2. insert sample rows written the way the old code wrote them;
 #   3. apply the expand migration and check the backfill of the status;
 #   4. insert rows without a status, as the old code would still write them;
@@ -13,7 +14,6 @@
 set -euo pipefail
 
 DB_URL="${DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
-BEFORE_EXPAND="${BEFORE_EXPAND:-20260820120000}"
 CONTRACT_FILE="${CONTRACT_FILE:-supabase/contract/20261108000100_007_classification_contract.sql}"
 
 case "$DB_URL" in
@@ -30,8 +30,11 @@ expect() {
   echo "ok: $description"
 }
 
-echo "Resetting the local database to version ${BEFORE_EXPAND}"
-supabase db reset --version "$BEFORE_EXPAND"
+echo "Resetting the local database to the state before the expand migration"
+supabase db reset --last 1
+# A reset that does not happen must not pass in silence.
+expect "the expand migration is not applied after the reset" "0" \
+  "select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'transactions' and column_name = 'classification_status'"
 
 echo "Inserting sample rows, as the old code wrote them"
 run <<'SQL'
