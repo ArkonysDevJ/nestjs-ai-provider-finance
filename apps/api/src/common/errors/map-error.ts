@@ -78,6 +78,7 @@ export function mapBackendError(error: unknown): HttpException {
       return new ConflictException(GENERIC_MESSAGES.conflict);
     case '23514': // check violation
     case '22P02': // invalid text representation
+    case '22023': // invalid parameter value (such as an invalid month)
     case CATEGORY_DOES_NOT_APPLY:
       return new BadRequestException(GENERIC_MESSAGES.badRequest);
     case '42501': // insufficient privilege

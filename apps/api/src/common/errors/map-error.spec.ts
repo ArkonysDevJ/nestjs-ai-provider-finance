@@ -58,6 +58,13 @@ describe('mapBackendError', () => {
         GENERIC_MESSAGES.badRequest,
       ],
       [
+        '22023 (invalid parameter value)',
+        '22023',
+        BadRequestException,
+        400,
+        GENERIC_MESSAGES.badRequest,
+      ],
+      [
         '42501 (insufficient privilege)',
         '42501',
         ForbiddenException,
