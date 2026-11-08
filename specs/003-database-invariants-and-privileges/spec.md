@@ -137,7 +137,7 @@ The measured catalog raises points that the requirements do not settle. The revi
 - **AC-1.** The three columns exist with their checks, and invalid values are rejected.
   - Test: `supabase/tests/database/003-classification-columns.test.sql` (AC-1).
 - **AC-2.** After the expand migration every pre-existing row has a non-null status according to the mapping.
-  - Test: CI step "Migration backfill check", which applies the earlier migrations, inserts sample rows, applies the new migration and asserts (AC-2).
+  - Test: CI step "Migration backfill check" (`scripts/test-migration-backfill.sh`), which applies the earlier migrations, inserts sample rows, applies the new migration and asserts (AC-2).
 - **AC-3.** A zero or negative amount is rejected with `23514`. Rows that violated it before are handled as the measured data requires.
   - Test: `supabase/tests/database/004-amount-check.test.sql` (AC-3).
 - **AC-4.** A category that does not apply to the type is rejected on insert and on update of `category_id`; `both` is accepted.
@@ -147,7 +147,7 @@ The measured catalog raises points that the requirements do not settle. The revi
 - **AC-6.** Creation rules, in two variants.
   - Expand stage: an insert with a null status and a null reason succeeds; an insert with a status but a fallback without a reason, or a reason without a fallback, is rejected; a forged but well-formed provenance is accepted, and the test documents that declared limit.
   - Contract stage: an insert with a null status is rejected; the other rules of the expand variant stay.
-  - Test: `supabase/tests/database/006-classification-transitions.test.sql`, expand and contract variants (AC-6).
+  - Test: `supabase/tests/database/006-classification-transitions.test.sql` (expand variant) and `supabase/contract/tests/006-classification-transitions.test.sql` (contract variant) (AC-6).
 - **AC-7.** The privilege catalog matches the matrix for `anon`, `authenticated` and `PUBLIC`, at table, column and function level.
   - Test: `supabase/tests/database/002-privileges.test.sql` using `table_privs_are`, `column_privs_are` and `function_privs_are` (AC-7).
 - **AC-8.** The owner cannot delete a transaction (`42501`).
@@ -157,7 +157,7 @@ The measured catalog raises points that the requirements do not settle. The revi
 - **AC-10.** The summary function is invoker, stable, with an empty `search_path`; it is executable by `authenticated` only; one user does not see another user's rows; sums are exact.
   - Test: `supabase/tests/database/007-summary-function.test.sql` (AC-10).
 - **AC-11.** After the contract stage a client role can update only `category_id`, `classification_status` is `NOT NULL`, and no row has a null status.
-  - Test: `supabase/tests/database/002-privileges.test.sql` and `006-classification-transitions.test.sql`, contract variants (AC-11).
+  - Test: `supabase/contract/tests/002-privileges.test.sql` and `006-classification-transitions.test.sql`; the fill of the null statuses is checked by `scripts/test-migration-backfill.sh` (AC-11).
 - **AC-12.** Changes of password, e-mail and phone of the demo user are rejected by the trigger, or the regeneration is recorded.
   - Test: `supabase/tests/database/008-demo-identity.test.sql` (AC-12), skipped with a recorded reason if the platform does not allow the trigger.
 - **AC-13.** The differences between the local catalog and the measured hosted catalog are listed and explained.
