@@ -1,0 +1,41 @@
+meta {
+  name: 03 - Summary function via PostgREST: refused without a user JWT
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{supabaseUrl}}/rest/v1/rpc/get_transactions_summary
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.body.code: eq 42501
+}
+
+tests {
+  test("the publishable key alone is refused with 401 or 403", function () {
+    expect([401, 403]).to.include(res.getStatus());
+  });
+  test("the refusal is insufficient_privilege (42501)", function () {
+    expect(res.getBody().code).to.equal("42501");
+  });
+}
+
+docs {
+  The function is executable by the authenticated role only. A call that
+  carries just the publishable key runs as anon and must be refused at the
+  privilege check. This request also exercises the path that once crashed a
+  local server when a role was switched by hand, so the two requests after it
+  confirm that the database still answers.
+}

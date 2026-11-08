@@ -125,6 +125,15 @@ jobs:
         if: failure()
         run: cat "${RUNNER_TEMP}/api.log" || true
 
+      # If the privilege checks through PostgREST ever take the database down,
+      # the server log is the evidence to report.
+      - name: Database log
+        if: failure()
+        run: |
+          for c in $(docker ps -a --filter 'name=supabase_db_' --format '{{.Names}}'); do
+            echo "== ${c}"; docker logs --tail 200 "${c}" 2>&1 || true
+          done
+
       # The deploy workflow builds this same Dockerfile, so it must keep
       # building. Here the image is only built, not pushed or run.
       - name: Build the container image

@@ -1,0 +1,21 @@
+meta {
+  name: 05 - The database still accepts connections after the privilege checks
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/health
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  The health endpoint runs a query through the database. It runs after the
+  refused and the allowed calls on the summary function and must still answer
+  200.
+}
