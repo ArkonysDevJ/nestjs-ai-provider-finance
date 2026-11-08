@@ -1,6 +1,10 @@
 // src/ai/ai-provider.interface.ts
 // [F-ID: SRC-AI-INTERFACE-01]
-// @version 1.1.0
+// @version 2.0.0
+// @changelog 2.0.0 — The port returns a discriminated result: a real
+//   classification (status 'ai') or a fallback with its reason. Before
+//   this, a provider failure was indistinguishable from a real "Otros".
+//   Adds the narrow client interfaces each provider is tested against.
 // @changelog 1.1.0 — Category catalog split by transaction type.
 //   Before this, CATEGORY_NAMES was a single flat list of 8
 //   expense-shaped categories offered to the AI regardless of
@@ -36,7 +40,7 @@ export type CategoryName =
   | (typeof EXPENSE_CATEGORY_NAMES)[number]
   | (typeof INCOME_CATEGORY_NAMES)[number];
 
-export const FALLBACK_CATEGORY: CategoryName = 'Otros';
+export const FALLBACK_CATEGORY = 'Otros' as const satisfies CategoryName;
 
 export type TransactionType = 'income' | 'expense';
 
@@ -58,8 +62,43 @@ export interface ClassificationInput {
   type: TransactionType;
 }
 
-export interface ClassificationResult {
-  categoryName: CategoryName;
+export type FallbackReason =
+  'provider_error' | 'timeout' | 'quota_exceeded' | 'invalid_output';
+
+/**
+ * Outcome of one classification. A failure is never reported as a
+ * classification: it is a fallback with its reason. `model` is the model
+ * requested in a fallback; in a real answer it is the model that served it
+ * when the SDK exposes it, and the requested model otherwise.
+ */
+export type ClassificationResult =
+  | { status: 'ai'; categoryName: CategoryName; model: string }
+  | {
+      status: 'fallback';
+      categoryName: typeof FALLBACK_CATEGORY;
+      reason: FallbackReason;
+      model: string;
+    };
+
+/** What the Gemini provider needs from a client: one call, text back. */
+export interface GeminiClient {
+  generate(request: {
+    prompt: string;
+    timeoutMs: number;
+    signal: AbortSignal;
+  }): Promise<{ text: string; model?: string }>;
+}
+
+/** What the local provider needs from a client: one call, text back. */
+export interface LocalClassifierClient {
+  classify(request: {
+    description: string;
+    amount: number;
+    type: TransactionType;
+    timeoutMs: number;
+    signal: AbortSignal;
+  }): Promise<{ text: string }>;
+  close?(): Promise<void>;
 }
 
 export type AiProviderName = 'gemini' | 'local';
