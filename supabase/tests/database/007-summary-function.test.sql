@@ -89,17 +89,14 @@ select is(
 );
 
 -- ─── Only authenticated can execute it ────────────────────────────────────
+-- Checked in the catalog. Switching to anon with raw role statements inside the
+-- test crashed the database server of the local stack image, so the test does
+-- not switch roles that way.
 
-reset role;
-set local role anon;
-
-select throws_ok(
-  $$ select public.get_transactions_summary('2026-03') $$,
-  '42501', 'permission denied for function get_transactions_summary',
+select ok(
+  not has_function_privilege('anon', 'public.get_transactions_summary(text)', 'EXECUTE'),
   'anon cannot execute the summary function'
 );
-
-reset role;
 
 select ok(
   not exists (
