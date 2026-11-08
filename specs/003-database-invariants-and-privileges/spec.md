@@ -1,6 +1,6 @@
 # Spec 003: database invariants and privileges
 
-Status: draft. The measured catalog of the hosted database is attached below (read-only queries, 2026-11-07). The DDL in `plan.md` stays a draft until the review of the privilege change, which also settles the open points listed in this spec.
+Status: draft. The measured catalog of the hosted database is attached below (read-only queries, 2026-11-07). The review of the privilege change has settled the open points listed in this spec (see "Open points"); the DDL in `plan.md` carries the patches of that review and is applied to the hosted database only by the maintainer, after the review confirms the patched diff and the PostgREST check of AC-17 has run.
 
 ## Goal
 
@@ -84,12 +84,12 @@ Read-only queries against the hosted project, each inside `begin read only; ... 
 
 ### Privileges (expand)
 
-11. Revoke all privileges on the `public` tables and functions from `anon`, `authenticated` and `PUBLIC`, including the `REFERENCES`, `TRIGGER` and `TRUNCATE` privileges found in the measured catalog, then grant exactly the matrix below. Set default privileges so that new objects in `public` start with none. Revoke `EXECUTE` on functions from `PUBLIC` by default.
+11. Revoke all privileges on the `public` tables and functions from `anon`, `authenticated`, `service_role` and `PUBLIC`, including the `REFERENCES`, `TRIGGER` and `TRUNCATE` privileges found in the measured catalog, then grant exactly the matrix below. On the schema itself only `CREATE` is revoked from `PUBLIC`: its `USAGE` is inherited from the platform and is kept, because with no privilege on any object it reaches nothing. Set default privileges so that new objects in `public` start with none. Revoke `EXECUTE` on functions from `PUBLIC` by default. `rls_auto_enable()` is kept, and `EXECUTE` is revoked from `PUBLIC`, `anon`, `authenticated` and `service_role` on it when it exists.
 12. Fix `search_path` on `ping()` and on `set_updated_at()`.
 
 | Object | `anon` | `authenticated` | `PUBLIC` |
 | --- | --- | --- | --- |
-| schema `public` | usage | usage | none |
+| schema `public` | usage | usage | usage, inherited from the platform; no accessible objects; `CREATE` revoked |
 | `categories` | none | select | none |
 | `transactions` (expand) | none | select, insert, update | none |
 | `transactions` (contract) | none | select, insert, update on `category_id` only | none |
@@ -113,7 +113,7 @@ Read-only queries against the hosted project, each inside `begin read only; ... 
 
 ## Contracts
 
-- New SQLSTATE values raised by the triggers (draft, final values in the plan): category does not apply to the type; classification columns cannot be changed directly. The API maps them in spec 005, together with `42501` (insufficient privilege) and `23514` (check violation).
+- New SQLSTATE values raised by the triggers (draft, final values in the plan): category does not apply to the type; classification columns cannot be changed directly. The API maps them in spec 005, together with `42501` (insufficient privilege), `23514` (check violation) and `22023` (invalid month in the summary function, mapped to 400).
 - The provenance written at creation is recorded by the API and is not verified by the database. The README states this limit.
 
 ## Edge cases
@@ -122,14 +122,14 @@ Read-only queries against the hosted project, each inside `begin read only; ... 
 - A reclassification to a category that does not apply to the type is rejected by the trigger even if the API check is removed.
 - Updating `amount`, `type` or `description` is not an API feature. After the contract stage the client roles cannot do it either.
 
-## Open points for the review
+## Open points
 
-The measured catalog raises points that the requirements do not settle. The review of the privilege change decides each one before the DDL is final.
+The measured catalog raised five points. The review of the privilege change settled them.
 
-1. **`rls_auto_enable()`.** It is `SECURITY DEFINER` and executable by `PUBLIC`, and no requirement names it. Requirement 11 would revoke `EXECUTE` from `PUBLIC` on it by default. Its definition has not been read, so what it is for, and whether the revoke is safe, is not known yet.
-2. **Default privileges of `supabase_admin`.** Objects created by that role in `public` start with all privileges for `anon`, `authenticated` and `service_role`. Whether the migration role can change those defaults on hosted Supabase is not known. If it cannot, the requirement "new objects start with none" holds for objects created by the migration role only, and AC-14 states that limit.
-3. **`service_role`.** It holds `REFERENCES`, `TRIGGER` and `TRUNCATE` and no data privileges. The matrix does not list it. The review decides whether it is revoked too or left to the platform.
-4. **The `DELETE` policy on `transactions`.** Requirement 10 removes the privilege and leaves the policy in place, dead. The review decides whether the policy is dropped in the contract stage or kept as a second barrier.
+1. **`rls_auto_enable()`.** Settled: it is kept, and `EXECUTE` is revoked from `PUBLIC`, `anon`, `authenticated` and `service_role` on it, only when the function exists (it is created by the hosted platform, not by the local stack).
+2. **Default privileges of `supabase_admin`.** Settled: the limit is accepted, with a mitigation. A read-only check on the hosted project showed that the migration role is not a member of `supabase_admin` and holds no `USAGE` on it, so the migration does not touch those default privileges. The guarantee "new objects start with no privileges" therefore holds for objects created by the migration role only (AC-14). An object created by the platform role can start with privileges for the client roles. The mitigation is a mandatory step after every migration applied to the hosted project: compare the grants of `public` in `information_schema.role_table_grants` with the matrix, and stop and report on any privilege outside it (`apps/api/deploy/RUNBOOK-SETUP.md`, section 15). The README states the limit.
+3. **`service_role`.** Settled: its privileges on the two tables and on the project functions are revoked.
+4. **The `DELETE` policy on `transactions`.** Settled: it is dropped in the expand stage, together with the privilege.
 5. **Auth settings.** Open sign-up, a 6-character minimum, no required character classes and a loopback site URL are not changed by this spec. They are recorded here as input for the README and for a separate decision of the maintainer.
 
 ## Acceptance criteria
@@ -148,7 +148,7 @@ The measured catalog raises points that the requirements do not settle. The revi
   - Expand stage: an insert with a null status and a null reason succeeds; an insert with a status but a fallback without a reason, or a reason without a fallback, is rejected; a forged but well-formed provenance is accepted, and the test documents that declared limit.
   - Contract stage: an insert with a null status is rejected; the other rules of the expand variant stay.
   - Test: `supabase/tests/database/006-classification-transitions.test.sql` (expand variant) and `supabase/contract/tests/006-classification-transitions.test.sql` (contract variant) (AC-6).
-- **AC-7.** The privilege catalog matches the matrix for `anon`, `authenticated` and `PUBLIC`, at table, column and function level.
+- **AC-7.** The privilege catalog matches the matrix for `anon`, `authenticated`, `service_role` and `PUBLIC`, at table, column and function level. On the schema, `PUBLIC` holds `USAGE` and nothing else, and `anon` and `authenticated` cannot create objects.
   - Test: `supabase/tests/database/002-privileges.test.sql` using `table_privs_are`, `column_privs_are` and `function_privs_are` (AC-7).
 - **AC-8.** The owner cannot delete a transaction (`42501`).
   - Test: `supabase/tests/database/002-privileges.test.sql` (AC-8).
@@ -168,6 +168,8 @@ The measured catalog raises points that the requirements do not settle. The revi
   - Test: `supabase/tests/database/009-expand-compatibility.test.sql` (AC-15).
 - **AC-16.** After the contract stage, a creation, a reclassification and a summary read through the deployed API return no server error. Live check by the maintainer.
   - Test: manual check recorded in the pull request of the contract stage (AC-16).
+- **AC-17.** Through PostgREST on the local stack: a call to the summary function with the publishable key and no user token is refused with 401 or 403 and `42501`; the same call with a user token answers 200; afterwards the database still accepts connections (the API health endpoint answers 200). If the server goes down, nothing is applied to the hosted database and the server log is reported.
+  - Test: `bruno/nestjs-ai-provider-finance/security-tests/03-summary-function-denied-without-jwt.bru`, `04-summary-function-allowed-with-jwt.bru` and `05-database-still-answers.bru`, run by CI step "Integration tests (Bruno)" (AC-17).
 
 ## Out of scope
 

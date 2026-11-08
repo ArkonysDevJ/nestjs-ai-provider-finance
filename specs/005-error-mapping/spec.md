@@ -22,6 +22,7 @@ HTTP errors are predictable. No raw database or auth message reaches a client. T
 4. Mapping table:
    - `23505` and `23503`: 409;
    - `23514` (check violation) and `22P02` (invalid text representation): 400;
+   - `22023` (invalid parameter value, such as an invalid month in the summary function): 400;
    - `42501` (insufficient privilege): 403;
    - the category-does-not-apply trigger error: 400;
    - the classification-columns trigger error: 403;
