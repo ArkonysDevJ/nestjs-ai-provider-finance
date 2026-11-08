@@ -1,6 +1,11 @@
 // src/transactions/transactions.service.ts
 // [F-ID: SRC-TRANSACTIONS-SERVICE-01]
-// @version 1.3.0
+// @version 1.4.0
+// @changelog 1.4.0 — Every Supabase call goes through the shared error mapping
+//   (common/errors), so no message of the database or the REST layer reaches
+//   a response. The lookups of reclassify() no longer ignore their errors, and
+//   reads are retried once when the token is refused for being issued in the
+//   future. Writes are never retried.
 // @changelog 1.3.0 — Description normalization: capitalize first letter of
 //   description before AI classification and before insert. Applied at the
 //   service entry point so it's consistent regardless of client (Bruno,
@@ -35,7 +40,6 @@
 
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -49,6 +53,11 @@ import {
   FALLBACK_CATEGORY,
 } from '../ai/ai-provider.interface.js';
 import { CategoriesService } from '../categories/categories.service.js';
+import {
+  GENERIC_MESSAGES,
+  mapBackendError,
+} from '../common/errors/map-error.js';
+import { readWithRetry } from '../common/errors/retry.js';
 import { CreateTransactionDto } from './dto/create-transaction.dto.js';
 import { ReclassifyTransactionDto } from './dto/reclassify-transaction.dto.js';
 import {
@@ -97,11 +106,12 @@ export class TransactionsService {
       ) ?? categories.find((c) => c.name === FALLBACK_CATEGORY);
 
     if (!resolvedCategory) {
-      // Shouldn't happen with the seed applied -- declare it instead
-      // of assuming a category id that doesn't exist.
-      throw new InternalServerErrorException(
-        `Fallback category "${FALLBACK_CATEGORY}" not found in the catalog. Did you apply the migrations in supabase/migrations/?`,
+      // Shouldn't happen with the seed applied. The detail goes to the log;
+      // the response says nothing about the catalog.
+      this.logger.error(
+        `Fallback category "${FALLBACK_CATEGORY}" not found in the catalog. Were the migrations in supabase/migrations/ applied?`,
       );
+      throw new InternalServerErrorException(GENERIC_MESSAGES.internal);
     }
 
     const { data, error } = await supabase
@@ -125,21 +135,22 @@ export class TransactionsService {
       .single();
 
     if (error) {
-      this.logger.error(`Insert transaction failed: ${error.message}`);
-      throw this.mapSupabaseError(error);
+      throw mapBackendError(error);
     }
 
     return data as Transaction;
   }
 
   async findAll(supabase: SupabaseClient): Promise<TransactionWithCategory[]> {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*, categories(id, name)')
-      .order('occurred_at', { ascending: false });
+    const { data, error } = await readWithRetry(() =>
+      supabase
+        .from('transactions')
+        .select('*, categories(id, name)')
+        .order('occurred_at', { ascending: false }),
+    );
 
     if (error) {
-      throw this.mapSupabaseError(error);
+      throw mapBackendError(error);
     }
 
     return data as TransactionWithCategory[];
@@ -150,14 +161,12 @@ export class TransactionsService {
     id: string,
     dto: ReclassifyTransactionDto,
   ): Promise<Transaction> {
-    const { data: txRow, error: txError } = await supabase
-      .from('transactions')
-      .select('type')
-      .eq('id', id)
-      .maybeSingle();
+    const { data: txRow, error: txError } = await readWithRetry(() =>
+      supabase.from('transactions').select('type').eq('id', id).maybeSingle(),
+    );
 
     if (txError) {
-      throw this.mapSupabaseError(txError);
+      throw mapBackendError(txError);
     }
     if (!txRow) {
       throw new NotFoundException(
@@ -166,11 +175,18 @@ export class TransactionsService {
     }
     const transactionType = (txRow as { type: 'income' | 'expense' }).type;
 
-    const { data: categoryRow } = await supabase
-      .from('categories')
-      .select('applies_to')
-      .eq('id', dto.categoryId)
-      .maybeSingle();
+    const { data: categoryRow, error: categoryError } = await readWithRetry(
+      () =>
+        supabase
+          .from('categories')
+          .select('applies_to')
+          .eq('id', dto.categoryId)
+          .maybeSingle(),
+    );
+
+    if (categoryError) {
+      throw mapBackendError(categoryError);
+    }
 
     // If the category doesn't exist at all, don't duplicate that
     // error here -- let the update below hit the FK constraint and
@@ -194,7 +210,7 @@ export class TransactionsService {
       .maybeSingle();
 
     if (error) {
-      throw this.mapSupabaseError(error);
+      throw mapBackendError(error);
     }
 
     if (!data) {
@@ -221,12 +237,14 @@ export class TransactionsService {
       );
     }
 
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('amount, type, occurred_at, category_id, categories(id, name)');
+    const { data, error } = await readWithRetry(() =>
+      supabase
+        .from('transactions')
+        .select('amount, type, occurred_at, category_id, categories(id, name)'),
+    );
 
     if (error) {
-      throw this.mapSupabaseError(error);
+      throw mapBackendError(error);
     }
 
     const rows = data as unknown as Array<{
@@ -291,17 +309,5 @@ export class TransactionsService {
         a.month.localeCompare(b.month),
       ),
     };
-  }
-
-  private mapSupabaseError(error: { code?: string; message: string }): Error {
-    if (error.code === '23505') {
-      return new ConflictException(error.message);
-    }
-    if (error.code === '23503') {
-      return new ConflictException(
-        `Invalid reference (category_id does not exist): ${error.message}`,
-      );
-    }
-    return new InternalServerErrorException(error.message);
   }
 }
