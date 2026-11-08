@@ -1,7 +1,10 @@
 -- supabase/tests/database/001-user-isolation.test.sql
 -- [F-ID: SQL-TEST-USER-ISOLATION-01]
 -- @project nestjs-ai-provider-finance (portfolio)
--- @version 1.0.0
+-- @version 1.1.0
+-- @changelog 1.1.0 — Seeds each user's row as that user instead of as service_role,
+--   and expects the delete attempt to fail with 42501: the privileges
+--   migration revokes delete and removes the service_role grants.
 -- @changelog 1.0.0 — Proves the RLS invariants in
 --   20260728120000_001_init_schema.sql directly against Postgres,
 --   independent of the NestJS layer and independent of the bruno
@@ -27,33 +30,38 @@ begin;
 
 select plan(5);
 
--- ─── Setup (as service_role, bypasses RLS) ──────────────────────────────
+-- ─── Setup ────────────────────────────────────────────────────────────────
 
 select tests.create_supabase_user('user_a');
 select tests.create_supabase_user('user_b');
 
-select tests.authenticate_as_service_role();
+-- Each user inserts their own row. service_role is not used: after the explicit
+-- privileges migration it has no privilege on the tables, and the owner can
+-- always insert its own rows.
 
--- One category id is enough for both users' rows; RLS on categories is
--- select-only/public, not under test here except as a control (test 5).
+select tests.authenticate_as('user_a');
+
 insert into transactions (id, user_id, description, amount, type, category_id)
-values
-  (
-    'a0000000-0000-0000-0000-000000000001',
-    tests.get_supabase_uid('user_a'),
-    'User A groceries',
-    50.00,
-    'expense',
-    (select id from categories where name = 'Otros')
-  ),
-  (
-    'b0000000-0000-0000-0000-000000000001',
-    tests.get_supabase_uid('user_b'),
-    'User B rent',
-    800.00,
-    'expense',
-    (select id from categories where name = 'Otros')
-  );
+values (
+  'a0000000-0000-0000-0000-000000000001',
+  tests.get_supabase_uid('user_a'),
+  'User A groceries',
+  50.00,
+  'expense',
+  (select id from categories where name = 'Otros')
+);
+
+select tests.authenticate_as('user_b');
+
+insert into transactions (id, user_id, description, amount, type, category_id)
+values (
+  'b0000000-0000-0000-0000-000000000001',
+  tests.get_supabase_uid('user_b'),
+  'User B rent',
+  800.00,
+  'expense',
+  (select id from categories where name = 'Otros')
+);
 
 -- ─── transactions_select_own: cross-user reads are denied ──────────────
 
@@ -97,16 +105,18 @@ select results_eq(
   'user_a cannot update user_b''s transaction (0 rows affected, not an error)'
 );
 
--- ─── transactions_delete_own: cannot delete another user's row ─────────
+-- ─── delete: the privilege is revoked, so any delete is denied ──────────
+-- Before the privileges migration this was "0 rows affected" by the row policy.
+-- Now the privilege check fails first, whatever the row.
 
-select results_eq(
+select throws_ok(
   $$
     delete from transactions
     where id = 'b0000000-0000-0000-0000-000000000001'
-    returning 1
   $$,
-  ARRAY[]::integer[],
-  'user_a cannot delete user_b''s transaction (0 rows affected, not an error)'
+  '42501',
+  'permission denied for table transactions',
+  'user_a cannot delete a transaction of user_b (no delete privilege)'
 );
 
 -- ─── categories_select_authenticated: public read is intact (control) ──

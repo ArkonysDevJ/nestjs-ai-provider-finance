@@ -1,0 +1,33 @@
+meta {
+  name: 04 - Summary function via PostgREST: allowed with a user JWT
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{supabaseUrl}}/rest/v1/rpc/get_transactions_summary
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{access_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.selectedMonth: isDefined
+  res.body.byCategory: isDefined
+  res.body.byMonth: isDefined
+}
+
+docs {
+  Control for 03: the same call with a signed-in user's token succeeds, so the
+  refusal in 03 comes from the missing JWT and not from a broken function.
+}
