@@ -166,7 +166,10 @@ revoke all on function
   from service_role;
 
 -- 5b. Grant exactly the matrix.
-revoke all on schema public from public;
+-- PUBLIC keeps USAGE on the schema, as the platform grants it: with every
+-- privilege revoked from PUBLIC on the objects below, USAGE alone reaches no
+-- object. Only CREATE is revoked, which is what stops PUBLIC from adding objects.
+revoke create on schema public from public;
 grant usage on schema public to anon, authenticated;
 
 grant select on public.categories to authenticated;
@@ -203,11 +206,12 @@ revoke all on function public.transactions_classification_guard() from public, a
 
 -- rls_auto_enable() is provided by the platform and exists on the hosted
 -- project only. It returns event_trigger, so it is not callable as a function;
--- the revoke removes the execute privilege that PUBLIC holds by default.
+-- the revoke removes the execute privilege that PUBLIC holds by default, and
+-- the one that service_role may hold, for symmetry with the other functions.
 do $$
 begin
   if to_regprocedure('public.rls_auto_enable()') is not null then
-    revoke all on function public.rls_auto_enable() from public, anon, authenticated;
+    revoke all on function public.rls_auto_enable() from public, anon, authenticated, service_role;
   end if;
 end;
 $$;

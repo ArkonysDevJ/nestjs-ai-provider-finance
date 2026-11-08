@@ -4,7 +4,7 @@
 
 begin;
 
-select plan(23);
+select plan(24);
 
 -- ─── Helpers (session-local) ───────────────────────────────────────────────
 
@@ -49,14 +49,28 @@ select ok(
   'anon and authenticated can use schema public'
 );
 
+-- PUBLIC keeps USAGE on the schema (inherited from the platform) and has no
+-- CREATE. With no privilege on any object in the schema, USAGE reaches nothing.
 select ok(
-  not exists (
+  exists (
     select 1
       from pg_namespace n
      cross join lateral aclexplode(coalesce(n.nspacl, acldefault('n', n.nspowner))) a
-     where n.nspname = 'public' and a.grantee = 0
+     where n.nspname = 'public' and a.grantee = 0 and a.privilege_type = 'USAGE'
+  )
+  and not exists (
+    select 1
+      from pg_namespace n
+     cross join lateral aclexplode(coalesce(n.nspacl, acldefault('n', n.nspowner))) a
+     where n.nspname = 'public' and a.grantee = 0 and a.privilege_type <> 'USAGE'
   ),
-  'PUBLIC has no privilege on schema public'
+  'PUBLIC has USAGE and nothing else on schema public'
+);
+
+select ok(
+  not has_schema_privilege('anon', 'public', 'CREATE')
+  and not has_schema_privilege('authenticated', 'public', 'CREATE'),
+  'anon and authenticated cannot create objects in schema public'
 );
 
 -- ─── Tables ────────────────────────────────────────────────────────────────
@@ -153,8 +167,9 @@ select case
   else ok(
     pg_temp.function_privs('public.rls_auto_enable()', 'public') = array[]::text[]
     and pg_temp.function_privs('public.rls_auto_enable()', 'anon') = array[]::text[]
-    and pg_temp.function_privs('public.rls_auto_enable()', 'authenticated') = array[]::text[],
-    'rls_auto_enable() is not executable by PUBLIC, anon or authenticated')
+    and pg_temp.function_privs('public.rls_auto_enable()', 'authenticated') = array[]::text[]
+    and pg_temp.function_privs('public.rls_auto_enable()', 'service_role') = array[]::text[],
+    'rls_auto_enable() is not executable by PUBLIC, anon, authenticated or service_role')
 end;
 
 -- ─── Default privileges ────────────────────────────────────────────────────
