@@ -44,7 +44,7 @@ If a command in this table fails or is missing, say so in your pull request. Do 
 
 - `apps/api/src/ai/`: the `AIProvider` port and its implementations.
 - `apps/api/src/transactions/`, `categories/`, `health/`: HTTP modules.
-- `apps/api/src/common/`: guards and decorators.
+- `apps/api/src/common/`: guards, decorators and the error mapping (`errors/`).
 - `apps/api/deploy/`: Cloud Run service definition and the setup runbook.
 - `supabase/migrations/`: schema history. `supabase/tests/database/`: pgTAP tests.
 - `.github/workflows/`: CI, deployment and keep-alive workflows.
@@ -55,6 +55,7 @@ If a command in this table fails or is missing, say so in your pull request. Do 
 - Conventional Commits: `type(scope): imperative subject`. One logical change per commit. No attribution trailers. Do not change the git identity or git configuration.
 - Some existing files start with a header that has an identifier, a `@version` line and a `@changelog` line. Keep that format and update the version and changelog when you change such a file. New files do not need a header.
 - Never use `any`, `@ts-ignore` or equivalent escapes. Keep TypeScript strict.
+- Every error of Supabase goes through `mapBackendError` (`apps/api/src/common/errors/`). A response never carries a message of the database, the REST layer or Auth. Reads go through `readWithRetry`; writes are never retried.
 - Migrations are new files in `supabase/migrations/`. Never edit a migration that already exists. Every new table or function declares explicit `REVOKE` and `GRANT` statements and has a pgTAP test.
 - Dependencies: do not add packages that run install scripts. State every new dependency in the pull request.
 
