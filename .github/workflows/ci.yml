@@ -130,6 +130,18 @@ jobs:
       - name: Build the container image
         run: docker build -t ai-finance-api:ci .
 
+      # Data steps of spec 003 on sample rows. It resets the local database, so it
+      # runs after every step that needs the data, and it leaves the database in
+      # the contract state for the next step.
+      - name: Migration backfill check
+        run: bash scripts/test-migration-backfill.sh
+
+      # The contract stage is not in supabase/migrations: it is applied by the
+      # step above, and these tests then check the state it leaves. The first file
+      # installs pgTAP and the test helpers again after the reset.
+      - name: Contract stage tests
+        run: supabase test db supabase/tests/database/000-setup-tests-hooks.sql supabase/contract/tests
+
       # Informational: this step always ends with status 0. It becomes a
       # blocking step once the dependency advisories are resolved.
       - name: Dependency audit (informational)
