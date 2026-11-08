@@ -551,3 +551,28 @@ The keys used by the service are revoked separately, outside `gcloud`:
 Deleted workload identity pools and service accounts stay in soft-delete for
 about 30 days, and during that time their ID cannot be reused. To run the setup
 again after an undo, use different names or restore them with `undelete`.
+
+## 15. After every migration applied to the hosted database
+
+Mandatory, read-only. Objects created by the platform role `supabase_admin` can
+start with privileges for the client roles, and the migrations cannot change
+that (the migration role is not a member of that role). Compare the grants of
+schema `public` with the matrix in
+`specs/003-database-invariants-and-privileges/spec.md`. Run it in the SQL
+editor:
+
+```sql
+begin read only;
+select table_name, grantee, privilege_type
+  from information_schema.role_table_grants
+ where table_schema = 'public'
+ order by table_name, grantee, privilege_type;
+rollback;
+```
+
+Expected: `authenticated` holds `SELECT` on `categories`, and `SELECT`, `INSERT`
+and `UPDATE` on `transactions`. After the contract stage, `UPDATE` on
+`transactions` is limited to `category_id`; check it in
+`information_schema.role_column_grants`. Nothing for `anon`, `service_role` or
+`PUBLIC`, and no other table. If any privilege outside the matrix appears, stop
+and report it. Do not revoke it as part of the same step.

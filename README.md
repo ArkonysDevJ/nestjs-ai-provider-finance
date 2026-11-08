@@ -133,6 +133,8 @@ A separate pgTAP suite (`supabase/tests/database/`) exercises the same RLS surfa
 
 Both `FORCE ROW LEVEL SECURITY` (closing the table-owner bypass) and this full negative/adversarial test layer were added after an initial security audit found the original test suite covered only the happy path — a real gap, closed rather than left as accepted debt in a portfolio project meant to demonstrate exactly this kind of rigor.
 
+**Known limit of the database privileges.** The migrations revoke every privilege that the client roles do not need and set default privileges so that new objects in `public` start with none. They cannot change the default privileges of the platform role `supabase_admin`, because the migration role is not a member of it. An object created by that role can therefore start with privileges for the client roles. The mitigation is a check after every migration applied to the hosted project: the grants of `public` are compared with the intended matrix, and any privilege outside it stops the rollout (`apps/api/deploy/RUNBOOK-SETUP.md`, section 15).
+
 ## Gemini vs. local — a real comparison, not a claim
 
 7 attempts through `AI_PROVIDER=local` against a live GTX 1650 + Ollama setup: 2 failed on infrastructure (a connection refused because Ollama wasn't running, then a VRAM OOM — both diagnosed and documented above, neither a code bug), 5 produced real classifications end-to-end through the MCP server.

@@ -133,6 +133,8 @@ Una suite pgTAP separada (`supabase/tests/database/`) ejercita la misma superfic
 
 Tanto `FORCE ROW LEVEL SECURITY` (cerrando el bypass del dueño de la tabla) como esta capa completa de tests negativos/adversariales se agregaron después de que una auditoría de seguridad inicial encontró que la suite de tests original solo cubría el happy path — una brecha real, cerrada en vez de dejada como deuda aceptada en un proyecto de portafolio que busca demostrar exactamente este tipo de rigor.
 
+**Límite conocido de los privilegios de la base.** Las migraciones revocan todo privilegio que los roles cliente no necesitan y fijan privilegios por defecto para que los objetos nuevos de `public` empiecen sin ninguno. No pueden cambiar los privilegios por defecto del rol de la plataforma `supabase_admin`, porque el rol de migración no es miembro de él. Un objeto creado por ese rol puede, entonces, empezar con privilegios para los roles cliente. La mitigación es una comprobación después de cada migración aplicada al proyecto hospedado: se comparan los privilegios de `public` con la matriz prevista y cualquier privilegio fuera de ella detiene el despliegue (`apps/api/deploy/RUNBOOK-SETUP.md`, sección 15).
+
 ## Gemini vs. local — una comparación real, no una afirmación
 
 7 intentos vía `AI_PROVIDER=local` contra una GTX 1650 + Ollama real: 2 fallaron por infraestructura (una conexión rechazada porque Ollama no estaba corriendo, luego un OOM de VRAM — ambos diagnosticados y documentados arriba, ninguno un bug de código), 5 produjeron clasificaciones reales de punta a punta a través del servidor MCP.
