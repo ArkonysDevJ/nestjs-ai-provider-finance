@@ -1,13 +1,14 @@
 # Plan: spec 003
 
-Status: draft. Sections marked "pending" wait for the measured catalog of the hosted database.
+Status: draft. The inputs were measured on the hosted database on 2026-11-07 (see the spec). The DDL stays a draft until the review of the privilege change settles the open points of the spec.
 
-## Inputs (pending)
+## Inputs (measured 2026-11-07)
 
-- Privilege catalog of tables, columns and functions in the hosted database.
-- Count of rows with `amount <= 0`, and the distribution of existing rows by `ai_classified` and `ai_provider` (counts only).
-- Whether the migration role may create a trigger on `auth.users`, and who owns that table.
-- The API `max_rows` of the hosted project.
+- Privilege catalog of tables, columns and functions: in the spec. It shows `REFERENCES`, `TRIGGER` and `TRUNCATE` for `anon`, `authenticated` and `service_role`, and a third function, `rls_auto_enable()`.
+- Rows with `amount <= 0`: none, out of 95. Distribution by `ai_classified` and `ai_provider`: 5 manual, 37 `gemini`, 53 `local`.
+- The migration role (`postgres`) holds `TRIGGER` on `auth.users`, which `supabase_auth_admin` owns, and no trigger exists in `auth` today. Creating the demo identity trigger is therefore allowed on the hosted project; that the same holds on the local stack is checked by the test of that criterion in CI.
+- The API `max_rows` of the hosted project is 1000, and the local configuration already uses it.
+- The demo user id is `94f56c85-36dd-4feb-89ae-92254754fc93`.
 
 ## Files
 
@@ -21,10 +22,10 @@ Status: draft. Sections marked "pending" wait for the measured catalog of the ho
 
 1. Add the three columns with their checks; add the check that ties the reason to `fallback`.
 2. Backfill existing rows (statement kept in one place so the test reuses it).
-3. Add `CHECK (amount > 0)`, `NOT VALID` first if the data requires it.
+3. Add `CHECK (amount > 0)` validated: the measured data has no violating row. Use `NOT VALID` only if a later measurement finds one.
 4. Create the category/type trigger function and trigger.
 5. Create the classification guard function and trigger, after the backfill. In this stage the insert rule accepts a null status; the contract stage tightens it together with `NOT NULL`.
-6. Revoke and grant per the matrix; set default privileges; fix `search_path` on `ping()` and `set_updated_at()`; revoke `DELETE`.
+6. Revoke and grant per the matrix, including `REFERENCES`, `TRIGGER` and `TRUNCATE`; set default privileges for the migration role; fix `search_path` on `ping()` and `set_updated_at()`; revoke `DELETE`.
 7. Create the summary function and grant `EXECUTE` to `authenticated`.
 8. Create the demo identity trigger, or record the alternative.
 
@@ -43,6 +44,7 @@ Status: draft. Sections marked "pending" wait for the measured catalog of the ho
 
 ## Risks
 
-- A trigger on `auth.users` may not be permitted. The alternative is in the spec.
+- A trigger on `auth.users` is allowed on the hosted project (the migration role holds `TRIGGER`). It may still fail on the local stack; the alternative is in the spec.
+- Default privileges of `supabase_admin` in `public` give every client role full table privileges, and the migration role may not be able to change them. Objects created by that role are outside the guarantee.
 - A hosted object that the migrations do not mention (extensions, Supabase defaults) can alter the privilege catalog. The measured catalog is the reference, and the local comparison explains any difference.
 - Locks during the expand migration: `ALTER TABLE` takes short exclusive locks. The table is small; the plan records the expected duration.

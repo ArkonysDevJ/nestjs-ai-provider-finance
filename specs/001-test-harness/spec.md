@@ -1,6 +1,6 @@
 # Spec 001: test harness
 
-Status: implemented. Open items: the Postgres major version and the API row cap in `supabase/config.toml` are provisional until the measured hosted values arrive, and the CI steps that need Docker have not yet run in GitHub Actions.
+Status: implemented. The Postgres major version (17) and the API row cap (1000) in `supabase/config.toml` were confirmed against the hosted project on 2026-11-07, and the CI steps that need Docker ran in GitHub Actions. One known difference remains by design: e-mail confirmation is off in the local stack.
 
 ## Goal
 

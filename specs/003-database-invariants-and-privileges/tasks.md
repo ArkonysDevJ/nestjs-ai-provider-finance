@@ -1,7 +1,8 @@
 # Tasks: spec 003
 
-- [ ] Attach the measured hosted catalog and counts to this spec; finalize the DDL and the backfill mapping. (stage: 003-prepare)
-- [ ] Compare the local catalog (from spec 001's `config.toml`) with the measured hosted catalog; record the differences. (stage: 003-prepare)
+- [x] Attach the measured hosted catalog and counts to this spec. (stage: 003-prepare)
+- [ ] Settle the open points of the spec in the review of the privilege change; finalize the DDL and the backfill mapping (5 manual, 90 legacy). (stage: 003-prepare)
+- [ ] Compare the local catalog (from spec 001's `config.toml`) with the measured hosted catalog; record the differences. The configuration-level comparison is in the spec; the catalog-level one needs the local stack. (stage: 003-prepare)
 - [ ] Write the expand migration and its pgTAP tests (AC-1 to AC-10, AC-12, AC-14, AC-15). (stage: 003-expand)
 - [ ] Add the migration backfill check to CI (AC-2). (stage: 003-expand)
 - [ ] Review the DDL as a privilege change before it is merged or applied. (stage: 003-expand)
