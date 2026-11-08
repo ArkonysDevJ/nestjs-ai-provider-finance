@@ -41,6 +41,7 @@ export function fakeSupabase(): FakeSupabase {
     const builder = {
       select: () => builder,
       eq: () => builder,
+      or: () => builder,
       order: () => builder,
       insert: (payload: Record<string, unknown>) => {
         operation = 'insert';
