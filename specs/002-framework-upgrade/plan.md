@@ -22,20 +22,13 @@
 `npm audit --omit=dev` reports 11 advisories before the upgrade (4 moderate, 6 high, 1 critical) and 9 after (4 moderate, 4 high, 1 critical). The upgrade closed `fastify` and `@nestjs/platform-fastify`. The remaining ones, with the spec that closes each. The "closing spec" is inferred from the dependency path in `npm ls`; spec 004 confirms it when it runs.
 
 <!-- remaining-advisories:start -->
+
 | package | severity | closing spec | path |
-| --- | --- | --- | --- |
-| @modelcontextprotocol/sdk | high | 004 | direct |
-| @hono/node-server | moderate | 004 | via the MCP SDK |
-| hono | moderate | 004 | via the MCP SDK |
-| body-parser | high | 004 | via the MCP SDK (express) |
-| proxy-addr | critical | 004 | via the MCP SDK (express) |
-| qs | moderate | 004 | via the MCP SDK (express) |
-| ip-address | moderate | 004 | via the MCP SDK (express-rate-limit) |
-| zod | high | 004 | via the MCP SDK |
-| fast-uri | high | none | via ajv (MCP SDK, Nest CLI) and fastify |
+| ------- | -------- | ------------ | ---- |
+
 <!-- remaining-advisories:end -->
 
-`fast-uri` is also reached through Fastify and the Nest CLI, so spec 004 alone does not clearly close it. Because one advisory has no closing spec, the audit step stays informational (requirement 4).
+After the upgrade, nine advisories remained: eight through the MCP SDK and one in `fast-uri`. Spec 004 closed the first eight by moving the SDK to development dependencies (the production image installs neither it nor its dependencies), and a lockfile-only update of `fast-uri` to its patched versions closed the last one. No advisory remains, so the audit step is blocking. The step audits with `--omit=dev --omit=optional`, which is what the production image installs.
 
 ## Findings during the upgrade
 

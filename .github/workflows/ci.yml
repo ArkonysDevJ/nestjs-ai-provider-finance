@@ -151,11 +151,12 @@ jobs:
       - name: Contract stage tests
         run: supabase test db supabase/tests/database/000-setup-tests-hooks.sql supabase/contract/tests
 
-      # Informational: this step always ends with status 0. It becomes a
-      # blocking step once the dependency advisories are resolved.
-      - name: Dependency audit (informational)
-        run: |
-          npm audit --omit=dev || echo "::warning::npm audit reported advisories (informational, not blocking)."
+      # Blocking. It audits what the production image installs: the image omits
+      # development and optional dependencies, so the audit does too. (An optional
+      # peer dependency stays in the lockfile and would otherwise be reported
+      # although the image never installs it.)
+      - name: Dependency audit
+        run: npm audit --omit=dev --omit=optional
 
   guard:
     name: guard
