@@ -28,3 +28,13 @@
 - The new SDK may expose the served model differently; the plan falls back to the requested model.
 - Moving the SDK to dev dependencies must not break the image. The image build in CI is the check.
 - The prompt is unchanged, so the real answer quality is unchanged. The live check with balance confirms it.
+
+## What changed while implementing
+
+- **Names.** The model variable is `GEMINI_MODEL`. The new files are `classification.ts` (the exact-match parser, the timeout wrapper and the mapping of errors to reasons), `gemini.sdk-client.ts` and `local.mcp-client.ts` (the transport adapters) and `test/support/fake-supabase.ts` (a stand-in for the query builder that spec 005 reuses).
+- **The local provider's model.** It has no configurable model, so the result carries the label `local-mcp`.
+- **The timeout is enforced twice.** The provider wraps the call in its own timer and aborts a signal that it passes to the client, so a timeout is reported even if a client ignores the signal. The maximum accepted `AI_TIMEOUT_MS` is 50000.
+- **A "-latest" value is rejected at startup**, in addition to a missing model.
+- **The SDK as a development dependency is not enough for the audit.** `@google/genai` lists the MCP SDK as an optional peer, so the lockfile keeps one copy marked optional. The production image omits optional dependencies and does not install it, but `npm audit --omit=dev` still reported the advisories of its dependency tree. The audit step now uses `--omit=dev --omit=optional`, which is what the image installs. The one advisory left, in `fast-uri`, closed with a lockfile-only update to its patched versions (the same major versions).
+- **The MCP SDK moved from 1.30.0 to 1.32.2** as a development dependency, because moving it re-resolved the range. The fake MCP server and its tests still pass.
+- **The model name in `service.yaml` is not verified.** It is set to `gemini-2.5-flash`. The Gemini documentation does not give a clear answer on whether that name is still served to every project, and reports differ on the replacement names. Confirm it before the first deployment: a name that is not served makes every classification a fallback with `provider_error`.

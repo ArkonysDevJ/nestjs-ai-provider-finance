@@ -1,6 +1,6 @@
 # Spec 004: AI classification
 
-Status: draft, waiting for review.
+Status: implemented, not merged. The live check (AC-13) and the choice of the model name are the maintainer's.
 
 ## Goal
 
@@ -79,29 +79,29 @@ Make the outcome of a classification explicit and testable. A provider failure i
 - **AC-1.** A valid answer produces `status: 'ai'` with the category and the model.
   - Test: `apps/api/src/ai/gemini.provider.spec.ts` and `local.provider.spec.ts` (AC-1).
 - **AC-2.** Text that is not exactly one allowed category produces `fallback` with `invalid_output`.
-  - Test: provider specs (AC-2).
+  - Test: `apps/api/src/ai/gemini.provider.spec.ts` and `apps/api/src/ai/local.provider.spec.ts` (AC-2).
 - **AC-3.** Each failure kind maps as in requirement 2, and no provider error escapes as an exception.
-  - Test: provider specs, one case per reason (AC-3).
+  - Test: `apps/api/src/ai/gemini.provider.spec.ts` and `apps/api/src/ai/local.provider.spec.ts`, one case per reason (AC-3).
 - **AC-4.** The timeout is applied to the call and its default is below the platform request timeout.
-  - Test: provider specs and `apps/api/src/ai/config.spec.ts` (AC-4).
+  - Test: `apps/api/src/ai/gemini.provider.spec.ts`, `apps/api/src/ai/local.provider.spec.ts` and `apps/api/src/ai/config.spec.ts` (AC-4).
 - **AC-5.** Creation persists status, reason and model, keeps `ai_classified` and `ai_provider`, and never stores a fallback as `ai`.
   - Test: `apps/api/src/transactions/transactions.service.spec.ts` with a fake provider (AC-5).
 - **AC-6.** Reclassification sends only `category_id`.
-  - Test: `transactions.service.spec.ts` (AC-6).
+  - Test: `apps/api/src/transactions/transactions.service.spec.ts` (AC-6).
 - **AC-7.** Provider selection: `gemini`, `local`, and an invalid value that stops startup; the unselected provider is never constructed.
   - Test: `apps/api/src/ai/ai.module.spec.ts` (AC-7).
 - **AC-8.** Selecting `local` with `NODE_ENV=production` stops startup, and the MCP SDK is a dev dependency in the lockfile.
   - Test: `ai.module.spec.ts` and `apps/api/test/dependencies.spec.ts` (AC-8).
 - **AC-9.** The MCP server binds `127.0.0.1`.
-  - Test: `apps/api/test/dependencies.spec.ts` reads `finance-classifier-mcp/server.py` (AC-9).
+  - Test: `apps/api/test/dependencies.spec.ts`, which reads the source of the MCP server (AC-9).
 - **AC-10.** A missing model variable stops startup when the provider is `gemini`; no source file uses a `-latest` alias; `service.yaml` sets the variable.
-  - Test: `ai.module.spec.ts` and `dependencies.spec.ts` (AC-10).
+  - Test: `apps/api/src/ai/ai.module.spec.ts` and `apps/api/test/dependencies.spec.ts` (AC-10).
 - **AC-11.** `@google/generative-ai` is gone from the lockfile and `@google/genai` is used.
-  - Test: `dependencies.spec.ts` (AC-11).
+  - Test: `apps/api/test/dependencies.spec.ts` (AC-11).
 - **AC-12.** None of these tests uses the network.
-  - Test: the suite runs in CI with no network access to external hosts (AC-12), as defined by spec 001.
+  - Test: CI step "Unit tests", which runs with no key and no external host, as defined by spec 001 (AC-12).
 - **AC-13.** Live check by the maintainer. Without Gemini balance: the stored row is `fallback` with `quota_exceeded` and the requested model. With balance: a real classification that is not "Otros" for an unambiguous description.
-  - Test: manual live check recorded in the pull request (AC-13).
+  - Test: manual check: the live check recorded in the pull request (AC-13).
 
 ## Out of scope
 
