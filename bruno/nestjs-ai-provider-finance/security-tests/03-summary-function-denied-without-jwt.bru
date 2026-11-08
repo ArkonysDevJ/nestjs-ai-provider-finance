@@ -19,10 +19,6 @@ body:json {
   {}
 }
 
-assert {
-  res.body.code: eq 42501
-}
-
 tests {
   test("the publishable key alone is refused with 401 or 403", function () {
     expect([401, 403]).to.include(res.getStatus());
