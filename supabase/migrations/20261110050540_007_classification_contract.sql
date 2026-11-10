@@ -1,9 +1,6 @@
--- Contract stage of spec 003. It is NOT in supabase/migrations on purpose: it
--- must be applied only after the code of specs 004 and 005 is deployed and
--- verified, because that code is what writes the classification columns. The
--- maintainer moves this file into supabase/migrations at that point and renames
--- it with the timestamp of that moment, so that it sorts after every migration
--- already applied.
+-- Contract stage of spec 003. It runs after the code of specs 004 and 005 is
+-- deployed and verified, because that code is what writes the classification
+-- columns. Its version sorts after every migration already applied.
 --
 -- It tightens what the expand stage left open:
 --   - rows still without a status are filled as legacy;

@@ -73,6 +73,7 @@ Make the outcome of a classification explicit and testable. A provider failure i
 - The category must belong to the allowed list of the transaction type. A category valid for the other type is `invalid_output`.
 - Prompt injection through the description is bounded by the exact-match rule: only an allowed category name is accepted.
 - The model name recorded in `fallback` is the requested one even if no request reached the provider.
+- Reclassifying a transaction to the category it already has is an explicit no-op, not a reclassification: the category does not change, so the classification stays as it was (the database derives the manual state only when `category_id` changes).
 
 ## Acceptance criteria
 

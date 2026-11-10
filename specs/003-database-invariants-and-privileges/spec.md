@@ -1,6 +1,6 @@
 # Spec 003: database invariants and privileges
 
-Status: draft. The measured catalog of the hosted database is attached below (read-only queries, 2026-11-07). The review of the privilege change has settled the open points listed in this spec (see "Open points"); the DDL in `plan.md` carries the patches of that review and is applied to the hosted database only by the maintainer, after the review confirms the patched diff and the PostgREST check of AC-17 has run.
+Status: the expand stage is merged and the maintainer applied it to the hosted database; the contract stage is prepared as a migration in `supabase/migrations` and is applied to the hosted database only by the maintainer, after the code of specs 004 and 005 is deployed and verified (both are). The measured catalog of the hosted database is attached below (read-only queries, 2026-11-07). The review of the privilege change settled the open points listed in this spec (see "Open points").
 
 ## Goal
 
@@ -147,7 +147,7 @@ The measured catalog raised five points. The review of the privilege change sett
 - **AC-6.** Creation rules, in two variants.
   - Expand stage: an insert with a null status and a null reason succeeds; an insert with a status but a fallback without a reason, or a reason without a fallback, is rejected; a forged but well-formed provenance is accepted, and the test documents that declared limit.
   - Contract stage: an insert with a null status is rejected; the other rules of the expand variant stay.
-  - Test: `supabase/tests/database/006-classification-transitions.test.sql` (expand variant) and `supabase/contract/tests/006-classification-transitions.test.sql` (contract variant) (AC-6).
+  - Test: CI step "Migration backfill check" (`scripts/test-migration-backfill.sh`) for the expand variant (a row inserted without a status after the expand migration is accepted), and `supabase/tests/database/006-classification-transitions.test.sql` for the contract variant and the shared rules (AC-6).
 - **AC-7.** The privilege catalog matches the matrix for `anon`, `authenticated`, `service_role` and `PUBLIC`, at table, column and function level. On the schema, `PUBLIC` holds `USAGE` and nothing else, and `anon` and `authenticated` cannot create objects.
   - Test: `supabase/tests/database/002-privileges.test.sql` using `table_privs_are`, `column_privs_are` and `function_privs_are` (AC-7).
 - **AC-8.** The owner cannot delete a transaction (`42501`).
@@ -157,7 +157,7 @@ The measured catalog raised five points. The review of the privilege change sett
 - **AC-10.** The summary function is invoker, stable, with an empty `search_path`; it is executable by `authenticated` only; one user does not see another user's rows; sums are exact.
   - Test: `supabase/tests/database/007-summary-function.test.sql` (AC-10).
 - **AC-11.** After the contract stage a client role can update only `category_id`, `classification_status` is `NOT NULL`, and no row has a null status.
-  - Test: `supabase/contract/tests/002-privileges.test.sql` and `006-classification-transitions.test.sql`; the fill of the null statuses is checked by `scripts/test-migration-backfill.sh` (AC-11).
+  - Test: `supabase/tests/database/002-privileges.test.sql` and `supabase/tests/database/006-classification-transitions.test.sql`; the fill of the null statuses is checked by `scripts/test-migration-backfill.sh` (AC-11).
 - **AC-12.** Changes of password, e-mail and phone of the demo user are rejected by the trigger, or the regeneration is recorded.
   - Test: `supabase/tests/database/008-demo-identity.test.sql` (AC-12), skipped with a recorded reason if the platform does not allow the trigger.
 - **AC-13.** The differences between the local catalog and the measured hosted catalog are listed and explained.
@@ -165,7 +165,7 @@ The measured catalog raised five points. The review of the privilege change sett
 - **AC-14.** An object created in `public` after this stage starts with no privileges for `anon`, `authenticated` and `PUBLIC` (default privileges).
   - Test: `supabase/tests/database/002-privileges.test.sql` creates a temporary table and function and checks their privileges (AC-14).
 - **AC-15.** After the expand stage the running code keeps working: an insert that does not set the new columns succeeds, and an owner update of `ai_classified` and `ai_provider` succeeds.
-  - Test: `supabase/tests/database/009-expand-compatibility.test.sql` (AC-15).
+  - Test: CI step "Migration backfill check" (`scripts/test-migration-backfill.sh`), which inserts rows without the new columns after the expand migration and checks them; and the live check after the expand migration was applied to the hosted database, done by the maintainer on 2026-11-09, which covers the running API. The pgTAP test that used to check the owner's update of `ai_classified` and `ai_provider` (`009-expand-compatibility`) was removed when the contract migration moved into `supabase/migrations`, because it describes a state that no longer exists in the local stack (AC-15).
 - **AC-16.** After the contract stage, a creation, a reclassification and a summary read through the deployed API return no server error. Live check by the maintainer.
   - Test: manual check recorded in the pull request of the contract stage (AC-16).
 - **AC-17.** Through PostgREST on the local stack: a call to the summary function with the publishable key and no user token is refused with 401 or 403 and `42501`; the same call with a user token answers 200; afterwards the database still accepts connections (the API health endpoint answers 200). If the server goes down, nothing is applied to the hosted database and the server log is reported.

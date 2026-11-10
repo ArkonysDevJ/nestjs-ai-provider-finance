@@ -41,26 +41,28 @@ select tests.create_supabase_user('user_b');
 
 select tests.authenticate_as('user_a');
 
-insert into transactions (id, user_id, description, amount, type, category_id)
+insert into transactions (id, user_id, description, amount, type, category_id, classification_status)
 values (
   'a0000000-0000-0000-0000-000000000001',
   tests.get_supabase_uid('user_a'),
   'User A groceries',
   50.00,
   'expense',
-  (select id from categories where name = 'Otros')
+  (select id from categories where name = 'Otros'),
+  'ai'
 );
 
 select tests.authenticate_as('user_b');
 
-insert into transactions (id, user_id, description, amount, type, category_id)
+insert into transactions (id, user_id, description, amount, type, category_id, classification_status)
 values (
   'b0000000-0000-0000-0000-000000000001',
   tests.get_supabase_uid('user_b'),
   'User B rent',
   800.00,
   'expense',
-  (select id from categories where name = 'Otros')
+  (select id from categories where name = 'Otros'),
+  'ai'
 );
 
 -- ─── transactions_select_own: cross-user reads are denied ──────────────
@@ -79,13 +81,14 @@ select tests.authenticate_as('user_a');
 
 select throws_ok(
   $$
-    insert into transactions (user_id, description, amount, type, category_id)
+    insert into transactions (user_id, description, amount, type, category_id, classification_status)
     values (
       (select tests.get_supabase_uid('user_b')),
       'Spoofed transaction',
       10.00,
       'expense',
-      (select id from categories where name = 'Otros')
+      (select id from categories where name = 'Otros'),
+      'ai'
     )
   $$,
   '42501',
@@ -97,7 +100,8 @@ select throws_ok(
 
 select results_eq(
   $$
-    update transactions set amount = 999.99
+    update transactions
+    set category_id = (select id from categories where name = 'Transporte')
     where id = 'b0000000-0000-0000-0000-000000000001'
     returning 1
   $$,

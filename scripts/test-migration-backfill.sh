@@ -2,19 +2,23 @@
 # Checks the data steps of spec 003 on sample rows, against the local stack:
 #
 #   1. reset the local database to the state before the expand migration (the
-#      expand migration is the last file of supabase/migrations at this stage);
+#      expand and the contract migrations are the last two files of
+#      supabase/migrations);
 #   2. insert sample rows written the way the old code wrote them;
 #   3. apply the expand migration and check the backfill of the status;
 #   4. insert rows without a status, as the old code would still write them;
-#   5. apply the contract file and check that those rows are filled, that nothing
-#      else changed, and that every trigger is enabled again.
+#   5. apply the contract migration and check that those rows are filled, that
+#      nothing else changed, and that every trigger is enabled again.
 #
-# The database is left in the contract state, so run this step last. It talks
-# only to the local stack and refuses to run against anything else.
+# The two migrations are applied one at a time with psql, so the migration
+# history of the local stack does not record them; the database is left in the
+# contract state, so run this step last. It talks only to the local stack and
+# refuses to run against anything else.
 set -euo pipefail
 
 DB_URL="${DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
-CONTRACT_FILE="${CONTRACT_FILE:-supabase/contract/20261108000100_007_classification_contract.sql}"
+EXPAND_FILE="$(ls supabase/migrations/*_006_classification_and_invariants_expand.sql)"
+CONTRACT_FILE="$(ls supabase/migrations/*_007_classification_contract.sql)"
 
 case "$DB_URL" in
   postgresql://*@127.0.0.1:* | postgresql://*@localhost:* | *host=/*) ;;
@@ -31,7 +35,7 @@ expect() {
 }
 
 echo "Resetting the local database to the state before the expand migration"
-supabase db reset --last 1
+supabase db reset --last 2
 # A reset that does not happen must not pass in silence.
 expect "the expand migration is not applied after the reset" "0" \
   "select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'transactions' and column_name = 'classification_status'"
@@ -53,7 +57,7 @@ select '11111111-1111-1111-1111-111111111111', 'sample ' || n, 10.00, 'expense',
 SQL
 
 echo "Applying the expand migration"
-supabase migration up
+run -f "$EXPAND_FILE"
 
 expect "every pre-existing row has a status" "0" \
   "select count(*) from public.transactions where classification_status is null"
@@ -76,7 +80,7 @@ SQL
 expect "the old code leaves the status null during the expand stage" "2" \
   "select count(*) from public.transactions where classification_status is null"
 
-echo "Applying the contract file"
+echo "Applying the contract migration"
 run -f "$CONTRACT_FILE"
 
 expect "no row is left without a status" "0" \

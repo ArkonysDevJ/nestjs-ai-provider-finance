@@ -17,23 +17,23 @@ select tests.create_supabase_user('other');
 -- 1200 small expenses: float arithmetic would not give an exact total.
 select tests.authenticate_as('owner');
 
-insert into public.transactions (user_id, description, amount, type, category_id, occurred_at)
+insert into public.transactions (user_id, description, amount, type, category_id, occurred_at, classification_status)
 select tests.get_supabase_uid('owner'), 'small', 0.10, 'expense',
-       (select id from public.categories where name = 'Alimentación'), date '2026-03-15'
+       (select id from public.categories where name = 'Alimentación'), date '2026-03-15', 'ai'
   from generate_series(1, 1200);
 
-insert into public.transactions (user_id, description, amount, type, category_id, occurred_at)
+insert into public.transactions (user_id, description, amount, type, category_id, occurred_at, classification_status)
 values
   (tests.get_supabase_uid('owner'), 'salary', 1000.50, 'income',
-   (select id from public.categories where name = 'Salario'), date '2026-03-20'),
+   (select id from public.categories where name = 'Salario'), date '2026-03-20', 'ai'),
   (tests.get_supabase_uid('owner'), 'bus', 5.25, 'expense',
-   (select id from public.categories where name = 'Transporte'), date '2026-02-10');
+   (select id from public.categories where name = 'Transporte'), date '2026-02-10', 'ai');
 
 select tests.authenticate_as('other');
 
-insert into public.transactions (user_id, description, amount, type, category_id, occurred_at)
+insert into public.transactions (user_id, description, amount, type, category_id, occurred_at, classification_status)
 values (tests.get_supabase_uid('other'), 'rent', 999.99, 'expense',
-        (select id from public.categories where name = 'Vivienda'), date '2026-03-05');
+        (select id from public.categories where name = 'Vivienda'), date '2026-03-05', 'ai');
 
 -- ─── Owner: exact totals, own rows only ───────────────────────────────────
 
