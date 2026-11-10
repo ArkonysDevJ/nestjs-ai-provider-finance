@@ -1,6 +1,10 @@
 // src/lib/api.ts
 // [F-ID: FE-LIB-API-01]
-// @version 1.3.0
+// @version 1.4.0
+// @changelog 1.4.0 — listTransactions takes limit and offset, and
+//   listAllTransactions loads every page (see ./paging). The totals of the
+//   summary are decimal strings, or numbers from an API deployed earlier;
+//   ./money reads both without floating point arithmetic.
 // @changelog 1.3.0 — Rate-limit message moved from transactionForm.
 //   rateLimited to a shared errors.rateLimited key. authorizedFetch is
 //   the wrapper used by EVERY endpoint (list/summary/categories, not
@@ -34,6 +38,7 @@
 
 import { supabase } from './supabase';
 import i18n from '../i18n';
+import { fetchAllPages } from './paging';
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
@@ -89,14 +94,14 @@ export interface SummaryResponse {
   byCategory: Array<{
     categoryId: string;
     categoryName: string;
-    totalExpense: number;
-    totalIncome: number;
+    totalExpense: string | number; // decimal text; a number from an older API
+    totalIncome: string | number;
     transactionCount: number;
   }>;
   byMonth: Array<{
     month: string;
-    totalExpense: number;
-    totalIncome: number;
+    totalExpense: string | number; // decimal text; a number from an older API
+    totalIncome: string | number;
     transactionCount: number;
   }>;
 }
@@ -104,8 +109,16 @@ export interface SummaryResponse {
 export const api = {
   listCategories: (): Promise<Category[]> => authorizedFetch('/categories'),
 
-  listTransactions: (): Promise<Transaction[]> =>
-    authorizedFetch('/transactions'),
+  listTransactions: (limit?: number, offset?: number): Promise<Transaction[]> =>
+    authorizedFetch(
+      limit === undefined && offset === undefined
+        ? '/transactions'
+        : `/transactions?limit=${limit ?? 100}&offset=${offset ?? 0}`,
+    ),
+
+  // Every page of the list, so the view does not depend on the page size.
+  listAllTransactions: (): Promise<Transaction[]> =>
+    fetchAllPages((limit, offset) => api.listTransactions(limit, offset)),
 
   createTransaction: (input: {
     description: string;
