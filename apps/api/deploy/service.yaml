@@ -49,12 +49,13 @@ spec:
               value: production
             - name: AI_PROVIDER
               value: gemini
-            # The exact model, never a "-latest" alias. Confirm that the name is
-            # still served for this project before deploying (the Gemini models
-            # page lists the current names); a name that is not served makes
-            # every classification a fallback.
+            # The exact model, never a "-latest" alias. The name is the one the
+            # models endpoint lists for this project with generateContent. Google
+            # retires versions, so check it again when a classification starts to
+            # fall back with provider_error: a name that is not served makes every
+            # classification a fallback.
             - name: GEMINI_MODEL
-              value: gemini-2.5-flash
+              value: gemini-3.8-flash
             - name: SUPABASE_URL
               value: https://qwgtwvimifwfuigcgmbv.supabase.co
             # Publishable key of Supabase, created for this service only.
