@@ -13,11 +13,10 @@ Status: draft. The inputs were measured on the hosted database on 2026-11-07 (se
 ## Files
 
 - `supabase/migrations/20261108000000_006_classification_and_invariants_expand.sql`: the whole expand stage in one transaction, including the explicit privileges, the summary function and the demo identity trigger. There is no separate privileges migration.
-- `supabase/contract/20261108000100_007_classification_contract.sql`: the contract stage. It is outside `supabase/migrations` on purpose: the CLI applies everything in that folder, and the expand state must stay testable. The maintainer moves the file into `supabase/migrations` when the code of specs 004 and 005 is deployed.
-- `supabase/tests/database/002` to `009`, and `001` adapted (it now seeds each user's row as that user, because `service_role` loses its privileges, and it expects `42501` on delete).
-- `supabase/contract/tests/`: the contract variants of the privilege and transition tests. They live outside `supabase/tests` because `supabase test db` walks that folder.
+- `supabase/migrations/20261110050540_007_classification_contract.sql`: the contract stage. It was kept outside `supabase/migrations` while the code of specs 004 and 005 was not deployed, so the expand state stayed testable. Once that code was deployed and verified it moved into the folder, renamed with the timestamp of that moment so that it sorts after every migration already applied. The maintainer applies it to the hosted database.
+- `supabase/tests/database/001` to `008`: they describe the contract state, the state of the local stack once every migration is applied (rows are inserted with a status of `ai`, and the update tests expect `42501` for every column except `category_id`). `001` seeds each user's row as that user, because `service_role` loses its privileges.
 - `scripts/test-migration-backfill.sh`: the data checks of both stages, on sample rows.
-- `.github/workflows/ci.yml`: the steps "Migration backfill check" and "Contract stage tests", which run last because they reset the local database.
+- `.github/workflows/ci.yml`: the step "Migration backfill check", which runs last because it resets the local database. It applies the expand and the contract migrations one at a time with `psql`.
 
 ## Draft DDL outline (expand)
 
