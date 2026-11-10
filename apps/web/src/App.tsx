@@ -93,6 +93,7 @@ import type { Session } from '@supabase/supabase-js';
 import { Trans, useTranslation } from 'react-i18next';
 import { supabase } from './lib/supabase';
 import { api, Category, SummaryResponse, Transaction } from './lib/api';
+import { formatMoney, toCents } from './lib/money';
 import { setLanguage } from './i18n';
 
 // Display-only category label. The 8 category names are persisted/compared
@@ -601,7 +602,7 @@ function TransactionList({
               </td>
               <td data-label={t('transactionList.amount')}>
                 {tx.type === 'expense' ? '-' : '+'}
-                {Number(tx.amount).toFixed(2)}
+                {formatMoney(tx.amount)}
               </td>
               <td data-label={t('transactionList.classifiedBy')}>
                 <ProviderBadge provider={tx.ai_provider} />
@@ -636,12 +637,12 @@ function Dashboard({
   // in both if it has applies_to='both' (only "Otros" today). A category
   // with totalExpense === 0 is an income-only row (e.g. Salario) -- don't
   // show it in the expense chart or it renders as an empty bar.
-  const expenseCategories = summary.byCategory.filter((c) => c.totalExpense > 0);
-  const incomeCategories = summary.byCategory.filter((c) => c.totalIncome > 0);
+  const expenseCategories = summary.byCategory.filter((c) => toCents(c.totalExpense) > 0);
+  const incomeCategories = summary.byCategory.filter((c) => toCents(c.totalIncome) > 0);
 
-  const maxCategoryExpense = Math.max(1, ...expenseCategories.map((c) => c.totalExpense));
-  const maxCategoryIncome = Math.max(1, ...incomeCategories.map((c) => c.totalIncome));
-  const maxMonthExpense = Math.max(1, ...summary.byMonth.map((m) => m.totalExpense));
+  const maxCategoryExpense = Math.max(100, ...expenseCategories.map((c) => toCents(c.totalExpense)));
+  const maxCategoryIncome = Math.max(100, ...incomeCategories.map((c) => toCents(c.totalIncome)));
+  const maxMonthExpense = Math.max(100, ...summary.byMonth.map((m) => toCents(m.totalExpense)));
 
   return (
     <div className="card">
@@ -664,10 +665,10 @@ function Dashboard({
           <div className="bar-track">
             <div
               className="bar-fill"
-              style={{ width: `${(c.totalExpense / maxCategoryExpense) * 100}%` }}
+              style={{ width: `${(toCents(c.totalExpense) / maxCategoryExpense) * 100}%` }}
             />
           </div>
-          <span>{c.totalExpense.toFixed(2)}</span>
+          <span>{formatMoney(c.totalExpense)}</span>
         </div>
       ))}
       {expenseCategories.length === 0 && <p>{t('dashboard.noData')}</p>}
@@ -681,10 +682,10 @@ function Dashboard({
               <div className="bar-track">
                 <div
                   className="bar-fill bar-fill--income"
-                  style={{ width: `${(c.totalIncome / maxCategoryIncome) * 100}%` }}
+                  style={{ width: `${(toCents(c.totalIncome) / maxCategoryIncome) * 100}%` }}
                 />
               </div>
-              <span>{c.totalIncome.toFixed(2)}</span>
+              <span>{formatMoney(c.totalIncome)}</span>
             </div>
           ))}
         </>
@@ -697,10 +698,10 @@ function Dashboard({
           <div className="bar-track">
             <div
               className="bar-fill"
-              style={{ width: `${(m.totalExpense / maxMonthExpense) * 100}%` }}
+              style={{ width: `${(toCents(m.totalExpense) / maxMonthExpense) * 100}%` }}
             />
           </div>
-          <span>{m.totalExpense.toFixed(2)}</span>
+          <span>{formatMoney(m.totalExpense)}</span>
         </div>
       ))}
       {summary.byMonth.length === 0 && <p>{t('dashboard.noData')}</p>}
@@ -761,7 +762,7 @@ export default function App() {
     try {
       setLoadError(null);
       const [tx, sum, cats] = await Promise.all([
-        api.listTransactions(),
+        api.listAllTransactions(),
         api.getSummary(month),
         api.listCategories(),
       ]);

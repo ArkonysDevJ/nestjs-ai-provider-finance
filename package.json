@@ -24,6 +24,7 @@
     "build": "npm run build:api && npm run build:web",
     "start:api": "npm run start:prod --workspace=apps/api",
     "test": "npm test --workspace=apps/api",
+    "test:web": "npm test --workspace=apps/web",
     "lint": "npm run lint --workspace=apps/api",
     "lint:fix": "npm run lint:fix --workspace=apps/api",
     "format": "npm run format --workspace=apps/api",

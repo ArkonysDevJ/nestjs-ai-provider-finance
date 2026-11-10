@@ -43,9 +43,9 @@ The summary is exact to the cent whatever the number of rows, and listing transa
 - **AC-4.** The list order is total and `limit` and `offset` are validated.
   - Test: `transactions.service.spec.ts` and Bruno request `transactions/07-list-paging.bru` (AC-4).
 - **AC-5.** The web app shows correct totals for number and string inputs and does not use floating point to add amounts.
-  - Test: `apps/web/src/lib/money.test.ts` (AC-5).
+  - Test: `apps/web/src/lib/money.test.ts`, run by CI step "Web unit tests" (AC-5).
 - **AC-6.** The web app loads every page of the list.
-  - Test: `apps/web/src/lib/api.test.ts` (AC-6).
+  - Test: `apps/web/src/lib/paging.test.ts`, run by CI step "Web unit tests" (AC-6).
 - **AC-7.** After the merge, the web app shows the correct totals against the deployed API. Live check by the maintainer.
   - Test: manual check recorded in the pull request (AC-7).
 
