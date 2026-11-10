@@ -34,6 +34,11 @@ docs {
   that's what separates a manual reclassification from an automatic
   one.
 
+  manual_category_id must also differ from the category the
+  transaction already has: the database marks a transaction as manual
+  only when its category changes, so reclassifying to the same
+  category leaves ai_classified and ai_provider as they were.
+
   manual_category_id must apply to the target transaction's type
   (applies_to = 'both' or matches its type) -- the backend rejects a
   mismatch (e.g. an expense category on an income transaction) with
