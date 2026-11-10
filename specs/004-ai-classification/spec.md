@@ -1,6 +1,6 @@
 # Spec 004: AI classification
 
-Status: implemented, not merged. The live check (AC-13) is the maintainer's; the model name is set to `gemini-3.8-flash` in `service.yaml`, and a direct call to the provider with it succeeded.
+Status: implemented and deployed on 2026-11-10. The model name is set to `gemini-3.8-flash` in `service.yaml`, and a direct call to the provider with it succeeded. The live check (AC-13) was done by the maintainer with balance; the quota path was not reproduced live.
 
 ## Goal
 
@@ -102,7 +102,7 @@ Make the outcome of a classification explicit and testable. A provider failure i
 - **AC-12.** None of these tests uses the network.
   - Test: CI step "Unit tests", which runs with no key and no external host, as defined by spec 001 (AC-12).
 - **AC-13.** Live check by the maintainer. Without Gemini balance: the stored row is `fallback` with `quota_exceeded` and the requested model. With balance: a real classification that is not "Otros" for an unambiguous description.
-  - Test: manual check: the live check recorded in the pull request (AC-13).
+  - Test: manual check: the live check by the maintainer on 2026-11-10, with balance: a creation through the deployed API stored `ai` with the model `gemini-3.8-flash` and a category other than "Otros" ("Transporte"). The quota path is covered by the unit tests of 402 and 429 and was not reproduced live (AC-13).
 
 ## Out of scope
 

@@ -1,6 +1,6 @@
 # Spec 003: database invariants and privileges
 
-Status: the expand stage is merged and the maintainer applied it to the hosted database; the contract stage is prepared as a migration in `supabase/migrations` and is applied to the hosted database only by the maintainer, after the code of specs 004 and 005 is deployed and verified (both are). The measured catalog of the hosted database is attached below (read-only queries, 2026-11-07). The review of the privilege change settled the open points listed in this spec (see "Open points").
+Status: implemented. The expand stage was applied to the hosted database by the maintainer, and the contract stage on 2026-11-10, after the code of specs 004 and 005 was deployed and verified. The measured catalog of the hosted database is attached below (read-only queries, 2026-11-07). The review of the privilege change settled the open points listed in this spec (see "Open points").
 
 ## Goal
 
@@ -161,13 +161,13 @@ The measured catalog raised five points. The review of the privilege change sett
 - **AC-12.** Changes of password, e-mail and phone of the demo user are rejected by the trigger, or the regeneration is recorded.
   - Test: `supabase/tests/database/008-demo-identity.test.sql` (AC-12), skipped with a recorded reason if the platform does not allow the trigger.
 - **AC-13.** The differences between the local catalog and the measured hosted catalog are listed and explained.
-  - Test: reviewed in the pull request of the expand stage (AC-13).
+  - Test: manual check: the comparison of this spec (section "Local stack comparison"), the grants matrix asserted on the local stack by `supabase/tests/database/002-privileges.test.sql`, and the grants comparison of the setup runbook run on the hosted project by the maintainer on 2026-11-10 (AC-13).
 - **AC-14.** An object created in `public` after this stage starts with no privileges for `anon`, `authenticated` and `PUBLIC` (default privileges).
   - Test: `supabase/tests/database/002-privileges.test.sql` creates a temporary table and function and checks their privileges (AC-14).
 - **AC-15.** After the expand stage the running code keeps working: an insert that does not set the new columns succeeds, and an owner update of `ai_classified` and `ai_provider` succeeds.
   - Test: CI step "Migration backfill check" (`scripts/test-migration-backfill.sh`), which inserts rows without the new columns after the expand migration and checks them; and the live check after the expand migration was applied to the hosted database, done by the maintainer on 2026-11-09, which covers the running API. The pgTAP test that used to check the owner's update of `ai_classified` and `ai_provider` (`009-expand-compatibility`) was removed when the contract migration moved into `supabase/migrations`, because it describes a state that no longer exists in the local stack (AC-15).
 - **AC-16.** After the contract stage, a creation, a reclassification and a summary read through the deployed API return no server error. Live check by the maintainer.
-  - Test: manual check recorded in the pull request of the contract stage (AC-16).
+  - Test: manual check: the live check by the maintainer on 2026-11-10, after the contract migration was applied to the hosted database: a creation, a reclassification and a summary read through the deployed API answered without a server error, and a direct update of `amount` or `ai_classified` through the REST layer was refused with `42501` (AC-16).
 - **AC-17.** Through PostgREST on the local stack: a call to the summary function with the publishable key and no user token is refused with 401 or 403 and `42501`; the same call with a user token answers 200; afterwards the database still accepts connections (the API health endpoint answers 200). If the server goes down, nothing is applied to the hosted database and the server log is reported.
   - Test: `bruno/nestjs-ai-provider-finance/security-tests/03-summary-function-denied-without-jwt.bru`, `04-summary-function-allowed-with-jwt.bru` and `05-database-still-answers.bru`, run by CI step "Integration tests (Bruno)" (AC-17).
 
