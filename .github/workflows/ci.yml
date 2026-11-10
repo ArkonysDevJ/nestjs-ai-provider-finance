@@ -121,6 +121,12 @@ jobs:
             --env-var "select_transaction_id=${SELECT_TRANSACTION_ID}" \
             --env-var "manual_category_id=${MANUAL_CATEGORY_ID}"
 
+      # The summary must not depend on the row cap of the REST layer: this test
+      # inserts more rows than max_rows into the local database and checks the
+      # totals through the REST layer. It runs only against the local stack.
+      - name: Summary row cap test
+        run: npm test --workspace=apps/api -- summary-max-rows
+
       - name: API log
         if: failure()
         run: cat "${RUNNER_TEMP}/api.log" || true
