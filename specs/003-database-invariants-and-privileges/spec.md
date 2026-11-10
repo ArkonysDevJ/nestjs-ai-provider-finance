@@ -113,7 +113,7 @@ Read-only queries against the hosted project, each inside `begin read only; ... 
 
 ## Contracts
 
-- New SQLSTATE values raised by the triggers (draft, final values in the plan): category does not apply to the type; classification columns cannot be changed directly. The API maps them in spec 005, together with `42501` (insufficient privilege), `23514` (check violation) and `22023` (invalid month in the summary function, mapped to 400).
+- New SQLSTATE values raised by the triggers (`TX001`, `TX002` and `TX003`; the plan lists them): category does not apply to the type; classification columns cannot be changed directly. The API maps them in spec 005, together with `42501` (insufficient privilege), `23514` (check violation) and `22023` (invalid month in the summary function, mapped to 400).
 - The provenance written at creation is recorded by the API and is not verified by the database. The README states this limit.
 
 ## Edge cases
@@ -127,7 +127,7 @@ Read-only queries against the hosted project, each inside `begin read only; ... 
 The measured catalog raised five points. The review of the privilege change settled them.
 
 1. **`rls_auto_enable()`.** Settled: it is kept, and `EXECUTE` is revoked from `PUBLIC`, `anon`, `authenticated` and `service_role` on it, only when the function exists (it is created by the hosted platform, not by the local stack).
-2. **Default privileges of `supabase_admin`.** Settled: the limit is accepted, with a mitigation. A read-only check on the hosted project showed that the migration role is not a member of `supabase_admin` and holds no `USAGE` on it, so the migration does not touch those default privileges. The guarantee "new objects start with no privileges" therefore holds for objects created by the migration role only (AC-14). An object created by the platform role can start with privileges for the client roles. The mitigation is a mandatory step after every migration applied to the hosted project: compare the grants of `public` in `information_schema.role_table_grants` with the matrix, and stop and report on any privilege outside it (`apps/api/deploy/RUNBOOK-SETUP.md`, section 15). The README states the limit.
+2. **Default privileges of `supabase_admin`.** Settled: the limit is accepted, with a mitigation. A read-only check on the hosted project showed that the migration role is not a member of `supabase_admin` and holds no `USAGE` on it, so the migration does not touch those default privileges. The guarantee "new objects start with no privileges" therefore holds for objects created by the migration role only (AC-14). An object created by the platform role can start with privileges for the client roles. The mitigation is a mandatory step after every migration applied to the hosted project: compare the grants of `public` in `information_schema.role_table_grants` with the matrix, and stop and report on any privilege outside it (`apps/api/deploy/RUNBOOK-SETUP.md`, section 14). The README states the limit.
 3. **`service_role`.** Settled: its privileges on the two tables and on the project functions are revoked.
 4. **The `DELETE` policy on `transactions`.** Settled: it is dropped in the expand stage, together with the privilege.
 5. **Auth settings.** Open sign-up, a 6-character minimum, no required character classes and a loopback site URL are not changed by this spec. They are recorded here as input for the README and for a separate decision of the maintainer.

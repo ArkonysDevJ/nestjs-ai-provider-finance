@@ -1,6 +1,6 @@
 # Plan: spec 003
 
-Status: draft. The inputs were measured on the hosted database on 2026-11-07 (see the spec). The DDL stays a draft until the review of the privilege change settles the open points of the spec.
+Status: implemented. The inputs were measured on the hosted database on 2026-11-07 (see the spec). The expand stage and the contract stage were applied to the hosted database by the maintainer, and the review of the privilege change settled the open points of the spec.
 
 ## Inputs (measured 2026-11-07)
 
@@ -18,7 +18,7 @@ Status: draft. The inputs were measured on the hosted database on 2026-11-07 (se
 - `scripts/test-migration-backfill.sh`: the data checks of both stages, on sample rows.
 - `.github/workflows/ci.yml`: the step "Migration backfill check", which runs last because it resets the local database. It applies the expand and the contract migrations one at a time with `psql`.
 
-## Draft DDL outline (expand)
+## DDL outline (expand)
 
 1. Add the three columns with their checks; add the check that ties the reason to `fallback`.
 2. Backfill existing rows (statement kept in one place so the test reuses it).
@@ -29,7 +29,7 @@ Status: draft. The inputs were measured on the hosted database on 2026-11-07 (se
 7. Create the summary function and grant `EXECUTE` to `authenticated`.
 8. Create the demo identity trigger, or record the alternative.
 
-## Draft DDL outline (contract)
+## DDL outline (contract)
 
 1. Fill null statuses as `legacy`, passing the guard by the mechanism chosen below.
 2. Revoke `UPDATE` on the table from client roles and grant `UPDATE (category_id)`.
@@ -57,11 +57,11 @@ Run by the maintainer on the hosted project after applying the expand migration,
 2. an attempt to change the password of the demo account fails;
 3. the sign-up and the sign-in of another user are not affected.
 
-Then the grants comparison of the setup runbook, section 15.
+Then the grants comparison of the setup runbook, section 14.
 
 ## Risks
 
 - A trigger on `auth.users` is allowed on the hosted project (the migration role holds `TRIGGER`). It may still fail on the local stack; the alternative is in the spec.
-- Default privileges of `supabase_admin` in `public` give every client role full table privileges, and the migration role cannot change them (it is not a member of that role). Objects created by that role are outside the guarantee; the mitigation is the grants comparison after every hosted migration (setup runbook, section 15).
+- Default privileges of `supabase_admin` in `public` give every client role full table privileges, and the migration role cannot change them (it is not a member of that role). Objects created by that role are outside the guarantee; the mitigation is the grants comparison after every hosted migration (setup runbook, section 14).
 - A hosted object that the migrations do not mention (extensions, Supabase defaults) can alter the privilege catalog. The measured catalog is the reference, and the local comparison explains any difference.
 - Locks during the expand migration: `ALTER TABLE` takes short exclusive locks. The table is small; the plan records the expected duration.
