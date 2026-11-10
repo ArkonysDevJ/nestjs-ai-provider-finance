@@ -18,5 +18,13 @@
 
 ## Risks
 
-- The window between the API and web deployments: the web app accepts both shapes, which is why the order of merges matters (API first).
+- The window between the API and web deployments: the web app accepts both shapes, which is why the order of merges matters. The web app goes first: the one deployed today calls `toFixed` on the totals, which fails on a string, so the API must not reach production before the new web app does.
 - A very large number of pages for a large user: acceptable for this demo, and documented.
+
+## What changed while implementing
+
+- **The function takes the month explicitly.** The API validates the month (`YYYY-MM`) and passes it as `p_month`, so the default month is decided in one place; the function's own default (the current month of the database) is not used. A month rejected by the function itself (`22023`) maps to 400.
+- **The summary reads no row.** `getSummary` makes one `rpc` call and returns the document as it comes, so the service tests can assert both the call and that no row is read.
+- **The row-cap test needs a stack.** It runs in its own CI step, after the Bruno requests, and is skipped when `SUPABASE_URL` and `SUPABASE_ANON_KEY` are not set to a loopback address, so `npm test` stays hermetic. It inserts `max_rows + 100` rows for a new user, shows that a plain read is cut at `max_rows`, and checks the exact totals through the function.
+- **The test rows stay in the local database.** The client roles cannot delete, and the stack is discarded after the run.
+- **Unknown query parameters are rejected.** The global validation pipe forbids parameters that are not listed, so `GET /v1/transactions` now answers 400 to any parameter other than `limit` and `offset`.
