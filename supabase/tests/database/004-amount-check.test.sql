@@ -8,25 +8,25 @@ select tests.create_supabase_user('owner');
 select tests.authenticate_as('owner');
 
 select throws_ok(
-  $$ insert into public.transactions (user_id, description, amount, type, category_id)
+  $$ insert into public.transactions (user_id, description, amount, type, category_id, classification_status)
      values (tests.get_supabase_uid('owner'), 'x', 0, 'expense',
-             (select id from public.categories where name = 'Otros')) $$,
+             (select id from public.categories where name = 'Otros'), 'ai') $$,
   '23514', null,
   'a zero amount is rejected'
 );
 
 select throws_ok(
-  $$ insert into public.transactions (user_id, description, amount, type, category_id)
+  $$ insert into public.transactions (user_id, description, amount, type, category_id, classification_status)
      values (tests.get_supabase_uid('owner'), 'x', -1.00, 'expense',
-             (select id from public.categories where name = 'Otros')) $$,
+             (select id from public.categories where name = 'Otros'), 'ai') $$,
   '23514', null,
   'a negative amount is rejected'
 );
 
 select lives_ok(
-  $$ insert into public.transactions (user_id, description, amount, type, category_id)
+  $$ insert into public.transactions (user_id, description, amount, type, category_id, classification_status)
      values (tests.get_supabase_uid('owner'), 'x', 0.01, 'expense',
-             (select id from public.categories where name = 'Otros')) $$,
+             (select id from public.categories where name = 'Otros'), 'ai') $$,
   'the smallest positive amount is accepted'
 );
 

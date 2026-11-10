@@ -1,10 +1,10 @@
--- Privilege catalog after the expand stage: schema, tables, columns, functions
--- and default privileges, for anon, authenticated, service_role and PUBLIC.
--- The contract variant (update on category_id only) is in supabase/contract/tests.
+-- Privilege catalog: schema, tables, columns, functions and default privileges,
+-- for anon, authenticated, service_role and PUBLIC. Client roles can update
+-- category_id only, and classification_status is NOT NULL.
 
 begin;
 
-select plan(24);
+select plan(31);
 
 -- ─── Helpers (session-local) ───────────────────────────────────────────────
 
@@ -83,8 +83,8 @@ select is(pg_temp.table_privs('public.categories', 'service_role'), array[]::tex
 select is(pg_temp.table_privs('public.transactions', 'anon'), array[]::text[], 'anon has no privilege on transactions');
 select is(
   pg_temp.table_privs('public.transactions', 'authenticated'),
-  array['INSERT', 'SELECT', 'UPDATE'],
-  'authenticated can select, insert and update transactions (expand stage)'
+  array['INSERT', 'SELECT'],
+  'authenticated holds no table-wide update on transactions: select and insert only'
 );
 select is(pg_temp.table_privs('public.transactions', 'public'), array[]::text[], 'PUBLIC has no privilege on transactions');
 select is(pg_temp.table_privs('public.transactions', 'service_role'), array[]::text[], 'service_role has no privilege on transactions');
@@ -104,16 +104,25 @@ select ok(
 -- ─── Columns ───────────────────────────────────────────────────────────────
 
 select is(
+  pg_temp.column_privs('public.transactions', 'category_id', 'authenticated'),
+  array['INSERT', 'SELECT', 'UPDATE'],
+  'authenticated can select, insert and update category_id'
+);
+
+select is(
   (select count(*)
      from pg_attribute a
     where a.attrelid = 'public.transactions'::regclass
       and a.attnum > 0
       and not a.attisdropped
+      and a.attname <> 'category_id'
       and pg_temp.column_privs('public.transactions', a.attname::text, 'authenticated')
-          <> array['INSERT', 'SELECT', 'UPDATE']),
+          <> array['INSERT', 'SELECT']),
   0::bigint,
-  'authenticated holds select, insert and update on every column of transactions (expand stage)'
+  'authenticated holds no update on any other column of transactions'
 );
+
+select col_not_null('public', 'transactions', 'classification_status', 'classification_status is NOT NULL');
 
 select is(
   (select count(*)
@@ -210,14 +219,15 @@ select is(
 select tests.create_supabase_user('owner');
 select tests.authenticate_as('owner');
 
-insert into public.transactions (id, user_id, description, amount, type, category_id)
+insert into public.transactions (id, user_id, description, amount, type, category_id, ai_classified, ai_provider, classification_status)
 values (
   'c0000000-0000-0000-0000-000000000001',
   tests.get_supabase_uid('owner'),
   'Row of the owner',
   10.00,
   'expense',
-  (select id from public.categories where name = 'Otros')
+  (select id from public.categories where name = 'Otros'),
+  true, 'gemini', 'ai'
 );
 
 select throws_ok(
@@ -225,6 +235,39 @@ select throws_ok(
   '42501',
   'permission denied for table transactions',
   'the owner of a row cannot delete it'
+);
+
+-- ─── Update is limited to category_id ─────────────────────────────────────
+
+select throws_ok(
+  $$ update public.transactions set amount = 99 where id = 'c0000000-0000-0000-0000-000000000001' $$,
+  '42501', 'permission denied for table transactions',
+  'the owner cannot update the amount'
+);
+
+select throws_ok(
+  $$ update public.transactions set ai_classified = false where id = 'c0000000-0000-0000-0000-000000000001' $$,
+  '42501', 'permission denied for table transactions',
+  'the owner cannot update ai_classified'
+);
+
+select throws_ok(
+  $$ update public.transactions set ai_provider = null where id = 'c0000000-0000-0000-0000-000000000001' $$,
+  '42501', 'permission denied for table transactions',
+  'the owner cannot update ai_provider'
+);
+
+select lives_ok(
+  $$ update public.transactions
+        set category_id = (select id from public.categories where name = 'Transporte')
+      where id = 'c0000000-0000-0000-0000-000000000001' $$,
+  'the owner can reclassify'
+);
+
+select is(
+  (select classification_status from public.transactions where id = 'c0000000-0000-0000-0000-000000000001'),
+  'manual',
+  'and the reclassification derives the manual state'
 );
 
 select * from finish();
