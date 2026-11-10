@@ -1,6 +1,8 @@
 // src/transactions/transactions.controller.ts
 // [F-ID: SRC-TRANSACTIONS-CONTROLLER-01]
-// @version 1.2.0
+// @version 1.3.0
+// @changelog 1.3.0 — GET /transactions takes ?limit= and ?offset= (see
+//   ListTransactionsQueryDto). The response stays a JSON array.
 // @changelog 1.2.0 — POST /transactions rate-limited to 20 requests per
 //   5 minutes per authenticated user (UserThrottlerGuard + @Throttle()).
 //   This is the only endpoint that calls the AI provider per request
@@ -42,6 +44,7 @@ import {
 } from './transactions.service.js';
 import { CreateTransactionDto } from './dto/create-transaction.dto.js';
 import { ReclassifyTransactionDto } from './dto/reclassify-transaction.dto.js';
+import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto.js';
 import { SummaryResponse } from './dto/summary-response.dto.js';
 import { Transaction } from './entities/transaction.entity.js';
 
@@ -64,8 +67,9 @@ export class TransactionsController {
   @Get()
   findAll(
     @CurrentSupabase() supabase: SupabaseClient,
+    @Query() query: ListTransactionsQueryDto,
   ): Promise<TransactionWithCategory[]> {
-    return this.transactionsService.findAll(supabase);
+    return this.transactionsService.findAll(supabase, query);
   }
 
   @Get('summary')

@@ -1,6 +1,12 @@
 // src/transactions/transactions.service.ts
 // [F-ID: SRC-TRANSACTIONS-SERVICE-01]
-// @version 1.4.0
+// @version 1.5.0
+// @changelog 1.5.0 — getSummary() calls the database function
+//   get_transactions_summary and does no arithmetic on amounts: the totals are
+//   decimal strings and the summary is exact whatever the number of rows, since
+//   one document comes back instead of every row (which the REST layer caps).
+//   findAll() is paged with limit and offset in a total order (occurred_at,
+//   created_at and id, all descending).
 // @changelog 1.4.0 — Every Supabase call goes through the shared error mapping
 //   (common/errors), so no message of the database or the REST layer reaches
 //   a response. The lookups of reclassify() no longer ignore their errors, and
@@ -60,11 +66,8 @@ import {
 import { readWithRetry } from '../common/errors/retry.js';
 import { CreateTransactionDto } from './dto/create-transaction.dto.js';
 import { ReclassifyTransactionDto } from './dto/reclassify-transaction.dto.js';
-import {
-  CategorySummaryItem,
-  MonthSummaryItem,
-  SummaryResponse,
-} from './dto/summary-response.dto.js';
+import { SummaryResponse } from './dto/summary-response.dto.js';
+import { DEFAULT_LIST_LIMIT } from './dto/list-transactions-query.dto.js';
 import { Transaction } from './entities/transaction.entity.js';
 
 export interface TransactionWithCategory extends Transaction {
@@ -141,12 +144,22 @@ export class TransactionsService {
     return data as Transaction;
   }
 
-  async findAll(supabase: SupabaseClient): Promise<TransactionWithCategory[]> {
+  async findAll(
+    supabase: SupabaseClient,
+    page: { limit?: number; offset?: number } = {},
+  ): Promise<TransactionWithCategory[]> {
+    const limit = page.limit ?? DEFAULT_LIST_LIMIT;
+    const offset = page.offset ?? 0;
+    // A total order: the date, then the creation time, then the id, so two rows
+    // never swap places between two pages.
     const { data, error } = await readWithRetry(() =>
       supabase
         .from('transactions')
         .select('*, categories(id, name)')
-        .order('occurred_at', { ascending: false }),
+        .order('occurred_at', { ascending: false })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(offset, offset + limit - 1),
     );
 
     if (error) {
@@ -237,77 +250,16 @@ export class TransactionsService {
       );
     }
 
+    // The database function sums the amounts with exact decimals and returns one
+    // document, so nothing here adds numbers and no row cap can truncate it.
     const { data, error } = await readWithRetry(() =>
-      supabase
-        .from('transactions')
-        .select('amount, type, occurred_at, category_id, categories(id, name)'),
+      supabase.rpc('get_transactions_summary', { p_month: selectedMonth }),
     );
 
     if (error) {
       throw mapBackendError(error);
     }
 
-    const rows = data as unknown as Array<{
-      amount: number;
-      type: 'income' | 'expense';
-      occurred_at: string;
-      category_id: string;
-      categories: { id: string; name: string } | null;
-    }>;
-
-    const byCategoryMap = new Map<string, CategorySummaryItem>();
-    const byMonthMap = new Map<string, MonthSummaryItem>();
-
-    for (const row of rows) {
-      const categoryName = row.categories?.name ?? FALLBACK_CATEGORY;
-      const categoryKey = row.category_id;
-      const month = row.occurred_at.slice(0, 7); // YYYY-MM
-      const amount = Number(row.amount);
-
-      // byMonth stays historical (every row) -- it's the trend view.
-      const monthEntry = byMonthMap.get(month) ?? {
-        month,
-        totalExpense: 0,
-        totalIncome: 0,
-        transactionCount: 0,
-      };
-      if (row.type === 'expense') {
-        monthEntry.totalExpense += amount;
-      } else {
-        monthEntry.totalIncome += amount;
-      }
-      monthEntry.transactionCount += 1;
-      byMonthMap.set(month, monthEntry);
-
-      // byCategory is scoped to selectedMonth only -- an all-time
-      // category total stops answering "how much this month" once
-      // usage spans multiple months.
-      if (month !== selectedMonth) continue;
-
-      const categoryEntry = byCategoryMap.get(categoryKey) ?? {
-        categoryId: categoryKey,
-        categoryName,
-        totalExpense: 0,
-        totalIncome: 0,
-        transactionCount: 0,
-      };
-      if (row.type === 'expense') {
-        categoryEntry.totalExpense += amount;
-      } else {
-        categoryEntry.totalIncome += amount;
-      }
-      categoryEntry.transactionCount += 1;
-      byCategoryMap.set(categoryKey, categoryEntry);
-    }
-
-    return {
-      selectedMonth,
-      byCategory: Array.from(byCategoryMap.values()).sort(
-        (a, b) => b.totalExpense - a.totalExpense,
-      ),
-      byMonth: Array.from(byMonthMap.values()).sort((a, b) =>
-        a.month.localeCompare(b.month),
-      ),
-    };
+    return data as SummaryResponse;
   }
 }

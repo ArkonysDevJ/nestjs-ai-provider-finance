@@ -1,6 +1,6 @@
 # Spec 006: summary and pagination
 
-Status: draft, waiting for review.
+Status: in progress. The API part is implemented (AC-1 to AC-4); the web app part (AC-5 and AC-6) and the live check (AC-7) are still to do.
 
 ## Goal
 
@@ -37,7 +37,7 @@ The summary is exact to the cent whatever the number of rows, and listing transa
 - **AC-1.** The summary is exact for more than 1000 rows.
   - Test: `supabase/tests/database/007-summary-function.test.sql` with 1200 rows (AC-1).
 - **AC-2.** The summary is not truncated by the API row cap: with `max_rows` in `supabase/config.toml` equal to the hosted value, a user with more rows than the cap gets the exact totals through the REST layer.
-  - Test: `apps/api/test/summary-max-rows.spec.ts` against the local stack (AC-2).
+  - Test: `apps/api/test/summary-max-rows.spec.ts` against the local stack, run by CI step "Summary row cap test" (AC-2).
 - **AC-3.** The API returns totals as decimal strings and counts as numbers.
   - Test: `apps/api/src/transactions/transactions.service.spec.ts` (AC-3).
 - **AC-4.** The list order is total and `limit` and `offset` are validated.

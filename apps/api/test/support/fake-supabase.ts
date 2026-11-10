@@ -12,8 +12,12 @@ export interface Answer {
 
 export interface Call {
   table: string;
-  operation: 'select' | 'insert' | 'update';
+  operation: 'select' | 'insert' | 'update' | 'rpc';
   payload?: Record<string, unknown>;
+  /** The order of a select, in the sequence it was asked for. */
+  order?: Array<{ column: string; ascending: boolean }>;
+  /** The inclusive range of a select. */
+  range?: [number, number];
 }
 
 export interface FakeSupabase {
@@ -38,11 +42,22 @@ export function fakeSupabase(): FakeSupabase {
 
   const query = (table: string) => {
     let operation: Call['operation'] = 'select';
+    const selectCall: Call = { table, operation: 'select' };
     const builder = {
       select: () => builder,
       eq: () => builder,
       or: () => builder,
-      order: () => builder,
+      order: (column: string, options?: { ascending?: boolean }) => {
+        selectCall.order = [
+          ...(selectCall.order ?? []),
+          { column, ascending: options?.ascending ?? true },
+        ];
+        return builder;
+      },
+      range: (from: number, to: number) => {
+        selectCall.range = [from, to];
+        return builder;
+      },
       insert: (payload: Record<string, unknown>) => {
         operation = 'insert';
         calls.push({ table, operation, payload });
@@ -60,13 +75,17 @@ export function fakeSupabase(): FakeSupabase {
         reject?: (reason: unknown) => unknown,
       ) => Promise.resolve(next(table, operation)).then(resolve, reject),
     };
-    if (operation === 'select') calls.push({ table, operation });
+    calls.push(selectCall);
     return builder;
   };
 
   return {
     client: {
       from: (table: string) => query(table),
+      rpc: (name: string, args: Record<string, unknown>) => {
+        calls.push({ table: name, operation: 'rpc', payload: args });
+        return Promise.resolve(next(name, 'rpc'));
+      },
     } as unknown as SupabaseClient,
     calls,
     answer(table, operation, answer) {

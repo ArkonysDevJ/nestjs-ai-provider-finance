@@ -15,7 +15,8 @@ select ok(
 select tests.create_supabase_user('owner');
 select tests.create_supabase_user('other');
 
--- 1200 small expenses: float arithmetic would not give an exact total.
+-- 006 AC-1: exact for more than 1000 rows. 1200 small expenses: float
+-- arithmetic would not give an exact total.
 select tests.authenticate_as('owner');
 
 insert into public.transactions (user_id, description, amount, type, category_id, occurred_at, classification_status)

@@ -1,0 +1,35 @@
+meta {
+  name: 07 - List Transactions, paged
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/transactions?limit=1&offset=0
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("the response is a JSON array with at most one row", function () {
+    expect(res.getBody()).to.be.an("array");
+    expect(res.getBody().length).to.be.at.most(1);
+  });
+  test("the page is not empty for a user who has transactions", function () {
+    expect(res.getBody().length).to.equal(1);
+  });
+}
+
+docs {
+  Covers 006 AC-4. limit and offset page the list in a total order (date,
+  creation time and id, all descending). limit goes from 1 to 200 and
+  defaults to 100; offset is 0 or more.
+}
