@@ -1,0 +1,36 @@
+meta {
+  name: 06 - Rejected By The Database
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/transactions/{{select_transaction_id}}/reclassify
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "categoryId": "00000000-0000-4000-8000-000000000000"
+  }
+}
+
+docs {
+  AC-6 of the error mapping spec: a write that the database rejects returns the
+  mapped status with a generic message. The category does not exist, so the
+  foreign key rejects the update: 409. The body must carry none of the text of
+  the database error.
+}
+
+assert {
+  res.status: eq 409
+  res.body.message: eq The request conflicts with the current state of the data.
+  res.body.message: notContains violates
+  res.body.message: notContains constraint
+}

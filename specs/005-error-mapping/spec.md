@@ -1,6 +1,6 @@
 # Spec 005: error mapping
 
-Status: draft, waiting for review.
+Status: implemented, not merged.
 
 ## Goal
 
@@ -49,13 +49,13 @@ HTTP errors are predictable. No raw database or auth message reaches a client. T
 - **AC-2.** No raw backend message appears in any error response.
   - Test: `apps/api/src/common/errors/map-error.spec.ts` (AC-2).
 - **AC-3.** Token errors map to 401. "Issued in the future" is retried once for reads and then becomes 401; writes are not retried.
-  - Test: `map-error.spec.ts` and `transactions.service.spec.ts` (AC-3).
+  - Test: `apps/api/src/common/errors/map-error.spec.ts`, `apps/api/src/transactions/transactions.service.spec.ts` and `apps/api/src/categories/categories.service.spec.ts` (AC-3).
 - **AC-4.** Each code in the mapping table maps to its status.
-  - Test: `map-error.spec.ts`, one case per row (AC-4).
+  - Test: `apps/api/src/common/errors/map-error.spec.ts`, one case per row (AC-4).
 - **AC-5.** Lookups no longer ignore errors; a failing lookup becomes a mapped error.
-  - Test: `transactions.service.spec.ts` (AC-5).
+  - Test: `apps/api/src/transactions/transactions.service.spec.ts` and `apps/api/src/categories/categories.service.spec.ts` (AC-5).
 - **AC-6.** Against the local stack, an invalid amount returns 400 and a write rejected by the database returns the mapped status.
-  - Test: Bruno requests `transactions/05-invalid-amount.bru` and `transactions/06-rejected-by-database.bru` (AC-6).
+  - Test: CI step "Integration tests (Bruno)" with the requests `bruno/nestjs-ai-provider-finance/transactions/05-invalid-amount.bru` and `bruno/nestjs-ai-provider-finance/transactions/06-rejected-by-database.bru` (AC-6).
 
 ## Out of scope
 
