@@ -1,6 +1,6 @@
 # Spec 004: AI classification
 
-Status: implemented, not merged. The live check (AC-13) is the maintainer's and waits for the provider credits; the model name is set to `gemini-3.8-flash` in `service.yaml`, not yet verified by a successful call.
+Status: implemented, not merged. The live check (AC-13) is the maintainer's; the model name is set to `gemini-3.8-flash` in `service.yaml`, and a direct call to the provider with it succeeded.
 
 ## Goal
 
