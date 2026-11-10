@@ -116,9 +116,9 @@ All endpoints require `Authorization: Bearer <supabase-jwt>` and live under `/v1
 |--------|-------------------------------|---------------------------------------------------|
 | GET    | `/categories?type=expense\|income` | The fixed catalog (11 categories total), optionally filtered to what applies to that transaction type |
 | POST   | `/transactions`                | Create a transaction; AI classifies it inline, from the category list applicable to its type |
-| GET    | `/transactions`                | List the authenticated user's transactions          |
+| GET    | `/transactions?limit=&offset=` | List the authenticated user's transactions, newest first, in pages (`limit` 1 to 200, default 100; `offset` 0 or more); a total order (date, creation time, id) keeps the pages stable |
 | POST   | `/transactions/:id/reclassify` | Manual override: the database marks the transaction as manual and clears `ai_classified`, `ai_provider` and `ai_model`; rejects a category whose `applies_to` doesn't match the transaction's type (400). Naming the category the transaction already has is an explicit no-op, not a reclassification: its classification stays as it was |
-| GET    | `/transactions/summary?month=YYYY-MM` | `byCategory` scoped to that month (default: current month); `byMonth` is the full historical series, unscoped |
+| GET    | `/transactions/summary?month=YYYY-MM` | `byCategory` scoped to that month (default: current month); `byMonth` is the full historical series, unscoped. Computed by a database function, so it is exact to the cent whatever the number of rows; `totalExpense` and `totalIncome` are decimal strings (`"1234.50"`) and `transactionCount` is a number |
 
 The category catalog is type-aware (`applies_to`: `expense` \| `income` \| `both`, see `supabase/migrations/003_category_types.sql`): 7 expense categories, 3 income categories (Salario, Ingreso extra, Reembolso), and "Otros" as the universal fallback for either. This isn't cosmetic — it's enforced on both sides: the AI prompt only offers the categories valid for the transaction's type (`categoryNamesForType()` in `ai-provider.interface.ts`), and `POST /transactions/:id/reclassify` rejects a mismatched category server-side even if a client bypasses the UI filter.
 
