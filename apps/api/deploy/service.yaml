@@ -56,6 +56,26 @@ spec:
             # classification a fallback.
             - name: GEMINI_MODEL
               value: gemini-3.8-flash
+            # Origins that may call the API from a browser: exact origins, comma
+            # separated. Without this variable no cross-origin request is allowed,
+            # and the preview deployments of the web app are not listed.
+            - name: CORS_ORIGINS
+              value: https://nestjs-ai-provider-finance-web.vercel.app
+            # Rate limiter, per client address and per instance (the counters live
+            # in memory and start again with each instance). Starting values, to be
+            # tuned after the measurement of the address that the service sees:
+            # 120 requests per 60 seconds for the API (about one page load of the
+            # web app every two seconds), 30 per 60 seconds for /v1/health, and
+            # one proxy in front, so the client address is the last entry of
+            # X-Forwarded-For. If a variable is missing the limiter is inactive.
+            - name: RATE_LIMIT_WINDOW_SECONDS
+              value: "60"
+            - name: RATE_LIMIT_MAX
+              value: "120"
+            - name: RATE_LIMIT_HEALTH_MAX
+              value: "30"
+            - name: RATE_LIMIT_TRUSTED_PROXY_HOPS
+              value: "1"
             - name: SUPABASE_URL
               value: https://qwgtwvimifwfuigcgmbv.supabase.co
             # Publishable key of Supabase, created for this service only.
