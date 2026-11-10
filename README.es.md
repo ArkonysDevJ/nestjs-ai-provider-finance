@@ -37,28 +37,41 @@ Monorepo con npm workspaces — backend y frontend son hermanos simétricos, no 
 
 ```
 apps/
-├── api/                                   # Backend NestJS
-│   └── src/
-│       ├── ai/
-│       │   ├── ai-provider.interface.ts   # El contrato que ambas implementaciones satisfacen
-│       │   ├── gemini.provider.ts         # Implementación de producción
-│       │   ├── local.provider.ts          # Implementación de desarrollo (cliente MCP real)
-│       │   └── ai-provider.factory.ts     # Resuelve el proveedor activo desde env
-│       ├── transactions/
-│       │   ├── transactions.module.ts
-│       │   ├── transactions.service.ts    # Llama a AIProvider, persiste el campo ai_provider
-│       │   └── entities/transaction.entity.ts
-│       ├── categories/
-│       └── common/guards/                 # Guard estándar de JWT de Supabase (sin vendor lock-in)
+├── api/                                   # Backend NestJS (módulos ES, Fastify)
+│   ├── src/
+│   │   ├── ai/
+│   │   │   ├── ai-provider.interface.ts   # El puerto y el resultado: ai o fallback con una razón
+│   │   │   ├── config.ts                  # Lee y valida la configuración del proveedor
+│   │   │   ├── classification.ts          # Parser de coincidencia exacta, timeout, error a razón
+│   │   │   ├── gemini.provider.ts         # Implementación de producción
+│   │   │   ├── gemini.sdk-client.ts       # Adaptador del SDK de Gemini
+│   │   │   ├── local.provider.ts          # Implementación de desarrollo
+│   │   │   ├── local.mcp-client.ts        # Adaptador del cliente MCP real
+│   │   │   └── ai.module.ts               # El único lugar que selecciona el proveedor
+│   │   ├── transactions/                  # Controlador, servicio, DTOs
+│   │   ├── categories/
+│   │   ├── health/                        # GET /v1/health, para el monitor y el keep-alive
+│   │   └── common/
+│   │       ├── guards/                    # Guard de JWT de Supabase y el límite por usuario
+│   │       ├── decorators/
+│   │       └── errors/                    # mapBackendError y el reintento de lecturas
+│   ├── test/                              # Tests de política y el servidor MCP falso
+│   └── deploy/                            # Definición del servicio de Cloud Run y runbook de configuración
 └── web/                                   # Dashboard React + Vite
-    └── src/
+    └── src/lib/                           # Cliente de la API, módulos de dinero y paginación
 
-supabase/migrations/                       # Esquema SQL, aplicado vía Supabase CLI
-bruno/                                     # Colección de API, probada contra un proyecto Supabase real
-finance-classifier-mcp/                    # Servidor MCP de referencia que respalda AI_PROVIDER=local
+supabase/
+├── migrations/                            # Historial del esquema, lo aplica el maintainer
+└── tests/database/                        # Tests pgTAP (aislamiento, privilegios, restricciones)
+bruno/                                     # Colección HTTP, corre en CI contra un stack local de Supabase
+scripts/                                   # Cobertura de criterios de aceptación, comprobaciones de datos de migraciones
+specs/                                     # Una carpeta por cambio: spec, plan, tareas
+finance-classifier-mcp/                    # Servidor MCP de referencia detrás de AI_PROVIDER=local
                                            # (Python + Ollama; MCP real sobre streamable-http,
-                                           # no un mock REST plano)
+                                           # no un mock REST simple)
 ```
+
+Cómo encajan las piezas, y por qué, está en [ARCHITECTURE.md](ARCHITECTURE.md) (en inglés).
 
 ## Cómo empezar
 
@@ -140,7 +153,7 @@ Tanto `FORCE ROW LEVEL SECURITY` (cerrando el bypass del dueño de la tabla) com
 - **La demo pública expone sus datos.** Las credenciales de la demo son públicas, así que cualquiera que inicie sesión puede leer y cambiar las transacciones de la demo. Un trigger de la base rechaza los cambios de contraseña, correo y teléfono de la cuenta demo. No ingreses datos reales en la demo.
 - **Reclasificar a la misma categoría no cambia nada.** El estado manual se deriva solo cuando la categoría cambia de verdad, así que una petición que nombra la categoría que la transacción ya tiene es un no-op explícito, no una reclasificación: su clasificación queda como estaba.
 
-**Límite conocido de los privilegios de la base.** Las migraciones revocan todo privilegio que los roles cliente no necesitan y fijan privilegios por defecto para que los objetos nuevos de `public` empiecen sin ninguno. No pueden cambiar los privilegios por defecto del rol de la plataforma `supabase_admin`, porque el rol de migración no es miembro de él. Un objeto creado por ese rol puede, entonces, empezar con privilegios para los roles cliente. La mitigación es una comprobación después de cada migración aplicada al proyecto hospedado: se comparan los privilegios de `public` con la matriz prevista y cualquier privilegio fuera de ella detiene el despliegue (`apps/api/deploy/RUNBOOK-SETUP.md`, sección 15).
+**Límite conocido de los privilegios de la base.** Las migraciones revocan todo privilegio que los roles cliente no necesitan y fijan privilegios por defecto para que los objetos nuevos de `public` empiecen sin ninguno. No pueden cambiar los privilegios por defecto del rol de la plataforma `supabase_admin`, porque el rol de migración no es miembro de él. Un objeto creado por ese rol puede, entonces, empezar con privilegios para los roles cliente. La mitigación es una comprobación después de cada migración aplicada al proyecto hospedado: se comparan los privilegios de `public` con la matriz prevista y cualquier privilegio fuera de ella detiene el despliegue (`apps/api/deploy/RUNBOOK-SETUP.md`, sección 14).
 
 ## Gemini vs. local — una comparación real, no una afirmación
 

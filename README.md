@@ -37,28 +37,41 @@ npm workspaces monorepo — backend and frontend are symmetric siblings, not an 
 
 ```
 apps/
-├── api/                                   # NestJS backend
-│   └── src/
-│       ├── ai/
-│       │   ├── ai-provider.interface.ts   # The contract both implementations satisfy
-│       │   ├── gemini.provider.ts         # Production implementation
-│       │   ├── local.provider.ts          # Development implementation (real MCP client)
-│       │   └── ai-provider.factory.ts     # Resolves the active provider from env
-│       ├── transactions/
-│       │   ├── transactions.module.ts
-│       │   ├── transactions.service.ts    # Calls AIProvider, persists ai_provider field
-│       │   └── entities/transaction.entity.ts
-│       ├── categories/
-│       └── common/guards/                 # Standard Supabase JWT guard (no vendor lock-in)
+├── api/                                   # NestJS backend (ES modules, Fastify)
+│   ├── src/
+│   │   ├── ai/
+│   │   │   ├── ai-provider.interface.ts   # The port and the result: ai or fallback with a reason
+│   │   │   ├── config.ts                  # Reads and validates the provider settings
+│   │   │   ├── classification.ts          # Exact-match parser, timeout, error to reason
+│   │   │   ├── gemini.provider.ts         # Production implementation
+│   │   │   ├── gemini.sdk-client.ts       # Adapter of the Gemini SDK
+│   │   │   ├── local.provider.ts          # Development implementation
+│   │   │   ├── local.mcp-client.ts        # Adapter of the real MCP client
+│   │   │   └── ai.module.ts               # The one place that selects the provider
+│   │   ├── transactions/                  # Controller, service, DTOs
+│   │   ├── categories/
+│   │   ├── health/                        # GET /v1/health, for the monitor and keep-alive
+│   │   └── common/
+│   │       ├── guards/                    # Supabase JWT guard and the per-user limit
+│   │       ├── decorators/
+│   │       └── errors/                    # mapBackendError and the retry of reads
+│   ├── test/                              # Policy tests and the fake MCP server
+│   └── deploy/                            # Cloud Run service definition and setup runbook
 └── web/                                   # React + Vite dashboard
-    └── src/
+    └── src/lib/                           # API client, money and paging modules
 
-supabase/migrations/                       # SQL schema, applied via Supabase CLI
-bruno/                                     # API collection, tested against a live Supabase project
+supabase/
+├── migrations/                            # Schema history, applied by the maintainer
+└── tests/database/                        # pgTAP tests (isolation, privileges, constraints)
+bruno/                                     # HTTP collection, run in CI against a local Supabase stack
+scripts/                                   # Acceptance-criteria coverage, migration data checks
+specs/                                     # One folder per change: spec, plan, tasks
 finance-classifier-mcp/                    # Reference MCP server backing AI_PROVIDER=local
                                            # (Python + Ollama; real MCP over streamable-http,
                                            # not a plain REST mock)
 ```
+
+How the pieces fit, and why, is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Getting started
 
@@ -140,7 +153,7 @@ Both `FORCE ROW LEVEL SECURITY` (closing the table-owner bypass) and this full n
 - **The public demo exposes its data.** The demo credentials are public, so anyone who signs in can read and change the demo's transactions. A database trigger rejects changes to the demo account's password, e-mail and phone. Do not enter real data in the demo.
 - **Reclassifying to the same category changes nothing.** The manual state is derived only when the category really changes, so a request that names the category a transaction already has is an explicit no-op, not a reclassification: its classification stays as it was.
 
-**Known limit of the database privileges.** The migrations revoke every privilege that the client roles do not need and set default privileges so that new objects in `public` start with none. They cannot change the default privileges of the platform role `supabase_admin`, because the migration role is not a member of it. An object created by that role can therefore start with privileges for the client roles. The mitigation is a check after every migration applied to the hosted project: the grants of `public` are compared with the intended matrix, and any privilege outside it stops the rollout (`apps/api/deploy/RUNBOOK-SETUP.md`, section 15).
+**Known limit of the database privileges.** The migrations revoke every privilege that the client roles do not need and set default privileges so that new objects in `public` start with none. They cannot change the default privileges of the platform role `supabase_admin`, because the migration role is not a member of it. An object created by that role can therefore start with privileges for the client roles. The mitigation is a check after every migration applied to the hosted project: the grants of `public` are compared with the intended matrix, and any privilege outside it stops the rollout (`apps/api/deploy/RUNBOOK-SETUP.md`, section 14).
 
 ## Gemini vs. local — a real comparison, not a claim
 
