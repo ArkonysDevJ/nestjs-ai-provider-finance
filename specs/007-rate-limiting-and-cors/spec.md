@@ -1,6 +1,6 @@
 # Spec 007: rate limiting and CORS
 
-Status: draft, waiting for review.
+Status: in progress. The limiter and CORS are implemented in the pull request and are not deployed. The starting values of the limiter are proposed there and wait for the maintainer's approval, and the live measurement (AC-9) comes after the deployment.
 
 ## Goal
 
@@ -42,17 +42,17 @@ The rate limit counts each client separately behind the Cloud Run proxy, cannot 
 - **AC-1.** Forged leftmost `X-Forwarded-For` entries do not change the tracked address.
   - Test: `apps/api/src/common/guards/rate-limit.guard.spec.ts` (AC-1).
 - **AC-2.** Two clients with different last entries have separate buckets; one reaching the limit does not block the other.
-  - Test: `rate-limit.guard.spec.ts` (AC-2).
+  - Test: `apps/api/src/common/guards/rate-limit.guard.spec.ts` (AC-2).
 - **AC-3.** `/v1/health` uses its own threshold and answers 200 at the cadence of the monitor.
-  - Test: `rate-limit.guard.spec.ts` (AC-3).
+  - Test: `apps/api/src/common/guards/rate-limit.guard.spec.ts` (AC-3).
 - **AC-4.** The per-user creation limit still applies and counts by user id, after authentication.
   - Test: `apps/api/src/transactions/transactions.controller.spec.ts` (AC-4).
 - **AC-5.** The application has one `ThrottlerModule.forRoot` and no global per-IP throttler guard.
   - Test: `apps/api/test/modules.spec.ts` (AC-5).
 - **AC-6.** Exceeding a limit returns 429 with `Retry-After`.
-  - Test: `rate-limit.guard.spec.ts` (AC-6).
+  - Test: `apps/api/src/common/guards/rate-limit.guard.spec.ts` (AC-6).
 - **AC-7.** With the four variables missing, the limiter is inactive and one startup log line says so.
-  - Test: `rate-limit.guard.spec.ts` (AC-7).
+  - Test: `apps/api/src/common/guards/rate-limit.guard.spec.ts` (AC-7).
 - **AC-8.** An origin that is not listed gets no CORS headers; with no variable, no origin is allowed; a listed origin is allowed.
   - Test: `apps/api/src/cors.spec.ts` (AC-8).
 - **AC-9.** In Cloud Run, the address that the service sees for a client is measured and recorded, to confirm the hop count. Live check by the maintainer.
