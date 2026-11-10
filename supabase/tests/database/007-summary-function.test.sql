@@ -1,3 +1,4 @@
+-- Covers: 003 AC-10.
 -- The summary function: invoker, stable, empty search_path, executable by
 -- authenticated only, isolated per user, and exact to the cent.
 

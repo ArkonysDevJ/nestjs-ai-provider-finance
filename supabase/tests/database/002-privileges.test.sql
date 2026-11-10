@@ -1,3 +1,4 @@
+-- Covers: 003 AC-7, 003 AC-8, 003 AC-9, 003 AC-11, 003 AC-14.
 -- Privilege catalog: schema, tables, columns, functions and default privileges,
 -- for anon, authenticated, service_role and PUBLIC. Client roles can update
 -- category_id only, and classification_status is NOT NULL.
