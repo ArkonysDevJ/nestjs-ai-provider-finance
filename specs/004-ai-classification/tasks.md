@@ -9,5 +9,5 @@
 - [x] Add the model variable to `service.yaml` and `.env.example`. (stage: 004)
 - [x] Write the provider, module, config, service and dependency tests. (stage: 004)
 - [x] Record the audit output; the audit step is blocking if nothing remains. Nothing remains, so the step is blocking. (stage: 004)
-- [ ] Live check by the maintainer (quota path; real path if there is balance). (stage: 004)
+- [x] Live check by the maintainer (quota path; real path if there is balance). Done on 2026-11-10 with balance; the quota path is covered by unit tests only. (stage: 004)
 - [x] Update this spec and this file with anything that changed. (stage: 004)

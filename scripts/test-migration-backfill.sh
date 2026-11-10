@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Checks the data steps of spec 003 on sample rows, against the local stack:
+# Checks the data steps of spec 003 on sample rows, against the local stack.
+# Covers: 003 AC-2, 003 AC-6, 003 AC-11, 003 AC-15.
 #
 #   1. reset the local database to the state before the expand migration (the
 #      expand and the contract migrations are the last two files of

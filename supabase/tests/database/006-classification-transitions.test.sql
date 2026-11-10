@@ -1,3 +1,4 @@
+-- Covers: 003 AC-5, 003 AC-6, 003 AC-11.
 -- Guard of the classification columns: what an insert may carry (the status must
 -- be ai or fallback), the manual state derived by a reclassification, and the
 -- rejection of direct changes.

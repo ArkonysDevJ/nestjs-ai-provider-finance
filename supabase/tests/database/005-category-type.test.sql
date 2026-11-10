@@ -1,3 +1,4 @@
+-- Covers: 003 AC-4.
 -- A category must apply to the transaction type, or to both. The check runs on
 -- insert and on update of category_id.
 

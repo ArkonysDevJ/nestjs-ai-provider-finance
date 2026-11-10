@@ -1,3 +1,4 @@
+-- Covers: 003 AC-1.
 -- The three classification columns exist and their checks reject invalid values.
 -- The guard trigger is disabled by name inside this transaction so that the
 -- table constraints are exercised on their own; the guard has its own tests.

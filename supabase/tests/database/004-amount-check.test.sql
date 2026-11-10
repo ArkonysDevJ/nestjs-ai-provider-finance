@@ -1,3 +1,4 @@
+-- Covers: 003 AC-3.
 -- A zero or negative amount is rejected with 23514.
 
 begin;

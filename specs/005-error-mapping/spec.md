@@ -1,6 +1,6 @@
 # Spec 005: error mapping
 
-Status: implemented, not merged.
+Status: implemented and deployed on 2026-11-10.
 
 ## Goal
 
