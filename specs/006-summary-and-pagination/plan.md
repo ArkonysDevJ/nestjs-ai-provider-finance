@@ -28,3 +28,6 @@
 - **The row-cap test needs a stack.** It runs in its own CI step, after the Bruno requests, and is skipped when `SUPABASE_URL` and `SUPABASE_ANON_KEY` are not set to a loopback address, so `npm test` stays hermetic. It inserts `max_rows + 100` rows for a new user, shows that a plain read is cut at `max_rows`, and checks the exact totals through the function.
 - **The test rows stay in the local database.** The client roles cannot delete, and the stack is discarded after the run.
 - **Unknown query parameters are rejected.** The global validation pipe forbids parameters that are not listed, so `GET /v1/transactions` now answers 400 to any parameter other than `limit` and `offset`.
+- **The test of the paging module is `paging.test.ts`.** The spec named `api.test.ts`, but `api.ts` imports the Supabase client and the i18n setup, which do not load outside the browser, so the pure module is tested instead.
+- **The order of the merges was reversed.** The web app went first, because the one deployed before this spec called `toFixed` on the totals, which fails on a string.
+- **A cached web app can survive a deployment.** After the API deployment, the first load in the browser still ran the previous web app and the dashboard stayed blank; a reload fixed it. A user with a long-lived tab can see this once.

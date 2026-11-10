@@ -1,6 +1,6 @@
 # Spec 006: summary and pagination
 
-Status: in progress. The API part is implemented (AC-1 to AC-4); the web app part (AC-5 and AC-6) and the live check (AC-7) are still to do.
+Status: implemented and deployed on 2026-11-10: the web app first, then the API. The live check (AC-7) was done by the maintainer.
 
 ## Goal
 
@@ -41,13 +41,13 @@ The summary is exact to the cent whatever the number of rows, and listing transa
 - **AC-3.** The API returns totals as decimal strings and counts as numbers.
   - Test: `apps/api/src/transactions/transactions.service.spec.ts` (AC-3).
 - **AC-4.** The list order is total and `limit` and `offset` are validated.
-  - Test: `transactions.service.spec.ts` and Bruno request `transactions/07-list-paging.bru` (AC-4).
+  - Test: `transactions.service.spec.ts` and Bruno request `bruno/nestjs-ai-provider-finance/transactions/07-list-paging.bru` (AC-4).
 - **AC-5.** The web app shows correct totals for number and string inputs and does not use floating point to add amounts.
   - Test: `apps/web/src/lib/money.test.ts`, run by CI step "Web unit tests" (AC-5).
 - **AC-6.** The web app loads every page of the list.
   - Test: `apps/web/src/lib/paging.test.ts`, run by CI step "Web unit tests" (AC-6).
 - **AC-7.** After the merge, the web app shows the correct totals against the deployed API. Live check by the maintainer.
-  - Test: manual check recorded in the pull request (AC-7).
+  - Test: manual check: the live check by the maintainer on 2026-11-10. The dashboard, the month selector and the list worked in the browser with the API as it was before the change, and with the API after it, which sends decimal strings and a paged list. The first load after the API deployment still ran the previous version of the web app from the browser cache; a reload fixed it (AC-7).
 
 ## Out of scope
 
