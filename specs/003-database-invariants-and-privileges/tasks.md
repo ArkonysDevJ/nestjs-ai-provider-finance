@@ -12,5 +12,5 @@
 - [x] Move the contract migration into `supabase/migrations/` with the timestamp of that moment, and bring the pgTAP tests and the backfill script to the contract state. (stage: 003-contract)
 - [ ] Apply the contract migration to the hosted database (maintainer only), now that the code of specs 004 and 005 is deployed and verified; run the grants comparison of the setup runbook afterwards. (stage: 003-contract)
 - [ ] Live check after the contract stage (AC-16). (stage: 003-contract)
-- [ ] README: state the creation-provenance limit, the demo data exposure and the removal of `DELETE`. (stage: final-docs)
+- [ ] README: state the creation-provenance limit, the demo data exposure, the removal of `DELETE`, and that reclassifying a transaction to the category it already has is an explicit no-op, not a reclassification: its classification stays as it was. (stage: final-docs)
 - [ ] Update this spec and this file with anything that changed. (stage: each stage)
