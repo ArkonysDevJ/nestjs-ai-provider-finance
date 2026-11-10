@@ -64,6 +64,11 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # Pure modules of the web app (money and paging), tested with the test runner
+      # of Node itself: no extra dependency.
+      - name: Web unit tests
+        run: npm test --workspace=apps/web
+
       - name: Acceptance criteria coverage
         run: node scripts/check-ac-coverage.mjs
 
