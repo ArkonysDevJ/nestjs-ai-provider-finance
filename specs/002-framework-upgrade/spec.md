@@ -1,6 +1,6 @@
 # Spec 002: framework upgrade
 
-Status: implemented on NestJS 12 (CI run pending). Open: the audit step stays informational because `fast-uri` has no closing spec.
+Status: implemented on NestJS 12. The audit step became blocking with spec 004, which closed the remaining advisories.
 
 ## Goal
 

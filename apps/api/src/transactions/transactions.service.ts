@@ -112,8 +112,13 @@ export class TransactionsService {
         amount: dto.amount,
         type: dto.type,
         category_id: resolvedCategory.id,
+        // The old columns keep their meaning; readers use classification_status.
         ai_classified: true,
         ai_provider: this.aiProvider.providerName,
+        classification_status: classification.status,
+        classification_reason:
+          classification.status === 'fallback' ? classification.reason : null,
+        ai_model: classification.model,
         occurred_at: dto.occurredAt ?? new Date().toISOString().slice(0, 10),
       })
       .select('*')
@@ -182,11 +187,8 @@ export class TransactionsService {
 
     const { data, error } = await supabase
       .from('transactions')
-      .update({
-        category_id: dto.categoryId,
-        ai_classified: false,
-        ai_provider: null,
-      })
+      // Only category_id: the database derives the manual state.
+      .update({ category_id: dto.categoryId })
       .eq('id', id)
       .select('*')
       .maybeSingle();

@@ -23,7 +23,7 @@ Runtime: Node.js >= 24.22.1. Production: Google Cloud Run (API) and Vercel (web)
 | Build API, web, both | `npm run build:api`, `npm run build:web`, `npm run build` |
 | Run API in development | `npm run dev:api` |
 | Run web in development | `npm run dev:web` |
-| Audit production dependencies | `npm audit --omit=dev` |
+| Audit production dependencies | `npm audit --omit=dev --omit=optional` |
 | Build the API image | `docker build .` |
 
 Test and quality commands:

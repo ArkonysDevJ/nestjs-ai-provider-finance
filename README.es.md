@@ -72,6 +72,7 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-or-publishable-key
 AI_PROVIDER=gemini            # o "local" para el proveedor de desarrollo FastMCP
 GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=your-gemini-model-name   # exact name; a "-latest" alias is rejected at startup
 
 # apps/web/.env  (copiar desde apps/web/.env.example)
 VITE_SUPABASE_URL=https://your-project.supabase.co

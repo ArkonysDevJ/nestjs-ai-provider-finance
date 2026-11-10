@@ -64,18 +64,30 @@ case "${1:-}" in
     ;;
   fixtures)
     token="$(access_token "$EMAIL_A" "$PASSWORD_A")"
-    transaction_id="$(curl --fail --silent --show-error \
+    created="$(curl --fail --silent --show-error \
       --request POST "${API_URL}/transactions" \
       --header "Authorization: Bearer ${token}" \
       --header 'Content-Type: application/json' \
-      --data '{"description":"Fixture transaction","amount":10,"type":"expense"}' | jq -r '.id')"
-    category_id="$(curl --fail --silent --show-error \
-      "${SUPABASE_URL}/rest/v1/categories?name=eq.Otros&select=id" \
+      --data '{"description":"Fixture transaction","amount":10,"type":"expense"}')"
+    transaction_id="$(printf '%s' "$created" | jq -r '.id')"
+    current_category_id="$(printf '%s' "$created" | jq -r '.category_id')"
+    # The reclassify request must change the category: the database marks a
+    # transaction as manual only when the category changes. The fake classifier
+    # files this transaction under "Otros", so the target is any other category
+    # that applies to an expense.
+    category_id="$(curl --fail --silent --show-error --get \
+      "${SUPABASE_URL}/rest/v1/categories" \
+      --data-urlencode 'select=id' \
+      --data-urlencode 'applies_to=in.(expense,both)' \
+      --data-urlencode "id=neq.${current_category_id}" \
+      --data-urlencode 'order=name.asc' \
+      --data-urlencode 'limit=1' \
       --header "apikey: ${SUPABASE_ANON_KEY}" \
       --header "Authorization: Bearer ${token}" | jq -r '.[0].id')"
-    for value in "$transaction_id" "$category_id"; do
+    for value in "$transaction_id" "$current_category_id" "$category_id"; do
       [ -n "$value" ] && [ "$value" != "null" ] || { echo "Could not create the fixtures." >&2; exit 1; }
     done
+    [ "$category_id" != "$current_category_id" ] || { echo "The fixtures need a different category." >&2; exit 1; }
     printf 'SELECT_TRANSACTION_ID=%s\nMANUAL_CATEGORY_ID=%s\n' "$transaction_id" "$category_id"
     ;;
   *)

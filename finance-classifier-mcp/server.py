@@ -13,12 +13,12 @@ for this portfolio project (nestjs-ai-provider-finance).
 Usage:
     pip install -r requirements.txt
     python server.py
-    # serves at http://0.0.0.0:8765/mcp (streamable-http)
+    # serves at http://127.0.0.1:8765/mcp (streamable-http)
 
 Optional environment variables:
     OLLAMA_BASE_URL  (default: http://localhost:11434)
     OLLAMA_MODEL     (default: qwen2.5:3b)
-    MCP_HOST         (default: 0.0.0.0)
+    MCP_HOST         (default: 127.0.0.1, loopback only)
     MCP_PORT         (default: 8765)
 """
 
@@ -31,7 +31,7 @@ from pydantic import Field
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:3b")
-MCP_HOST = os.environ.get("MCP_HOST", "0.0.0.0")
+MCP_HOST = os.environ.get("MCP_HOST", "127.0.0.1")
 MCP_PORT = int(os.environ.get("MCP_PORT", "8765"))
 
 # Closed catalog, split by transaction type -- must mirror

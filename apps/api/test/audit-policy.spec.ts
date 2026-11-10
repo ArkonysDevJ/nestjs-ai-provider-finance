@@ -35,10 +35,19 @@ function auditStepIsBlocking(): boolean {
 }
 
 describe('AC-4: the audit step matches the recorded advisories', () => {
-  it('AC-4: the recorded list is not empty and every row names a closing spec', () => {
-    const closing = remainingClosingSpecs();
-    expect(closing.length).toBeGreaterThan(0);
-    closing.forEach((value) => expect(value).toMatch(/^(\d{3}|none)$/));
+  it('AC-4: every recorded row names a closing spec', () => {
+    remainingClosingSpecs().forEach((value) =>
+      expect(value).toMatch(/^(\d{3}|none)$/),
+    );
+  });
+
+  it('AC-4: the audit covers what the production image installs', () => {
+    const step = workflow.split('name: Dependency audit')[1];
+    const command = step
+      .split('\n')
+      .find((line) => line.includes('npm audit')) as string;
+    expect(command).toContain('--omit=dev');
+    expect(command).toContain('--omit=optional');
   });
 
   it('AC-4: the step is blocking if and only if only spec 004 remains', () => {
