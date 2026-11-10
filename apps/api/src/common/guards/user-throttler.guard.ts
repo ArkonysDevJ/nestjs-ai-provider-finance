@@ -1,6 +1,9 @@
 // src/common/guards/user-throttler.guard.ts
 // [F-ID: SRC-GUARD-USER-THROTTLER-01]
-// @version 1.0.1
+// @version 1.1.0
+// @changelog 1.1.0 — The fallback when no user is set is the address of the
+//   client taken from X-Forwarded-For (see client-address), not the address of
+//   the proxy.
 // @changelog 1.0.1 — Lint annotation only: the override keeps the signature of the
 //   base class, which uses `any`. No behavior change.
 // @changelog 1.0.0 — Rate limits by authenticated user id instead of the
@@ -23,11 +26,15 @@
 
 import { Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { trackerOf, type TrackedRequest } from './tracker.js';
 
 @Injectable()
 export class UserThrottlerGuard extends ThrottlerGuard {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same signature as the base class
-  protected async getTracker(req: Record<string, any>): Promise<string> {
-    return req.user?.id ?? req.ip;
+  protected async getTracker(req: Record<string, unknown>): Promise<string> {
+    const hops = Number(process.env.RATE_LIMIT_TRUSTED_PROXY_HOPS ?? 0);
+    return trackerOf(
+      req as TrackedRequest,
+      Number.isInteger(hops) && hops >= 0 ? hops : 0,
+    );
   }
 }

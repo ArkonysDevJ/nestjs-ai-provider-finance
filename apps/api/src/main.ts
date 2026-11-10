@@ -1,6 +1,9 @@
 // src/main.ts
 // [F-ID: SRC-MAIN-01]
-// @version 1.1.0
+// @version 1.2.0
+// @changelog 1.2.0 — CORS reads CORS_ORIGINS and fails closed: without the
+//   variable no cross-origin request is allowed (see cors.ts). It was open to
+//   every origin (origin: true).
 // @changelog 1.1.0 — Removed credentials: true from CORS config. Found
 //            during a security audit pass: this project's frontend never
 //            uses cookies (auth.guard.ts validates a Bearer token, and
@@ -19,8 +22,9 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module.js';
+import { corsOptions, readCorsOrigins } from './cors.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -28,9 +32,15 @@ async function bootstrap(): Promise<void> {
     new FastifyAdapter(),
   );
 
-  app.enableCors({
-    origin: true,
-  });
+  const cors = readCorsOrigins(process.env.CORS_ORIGINS);
+  if (cors.origins.length === 0 || cors.rejected.length > 0) {
+    new Logger('Cors').warn(
+      cors.origins.length === 0
+        ? 'CORS_ORIGINS is missing or has no valid origin: no cross-origin request is allowed.'
+        : `CORS_ORIGINS has entries that are not an exact origin and were ignored: ${cors.rejected.join(', ')}`,
+    );
+  }
+  app.enableCors(corsOptions(cors.origins));
 
   app.useGlobalPipes(
     new ValidationPipe({
