@@ -4,9 +4,9 @@
 
 - `apps/api/package.json` and the root `package.json`: scripts `test`, `lint`, `lint:fix`, `format`, `format:check`; dev dependencies for Jest and ts-jest (API workspace) and for ESLint, typescript-eslint, `globals` and Prettier (root).
 - `apps/api/tsconfig.build.json` (the build excludes tests; `nest-cli.json` points to it, so the compiled layout stays `dist/main.js`) and `apps/api/tsconfig.spec.json`.
-- `apps/api/jest.config.ts`, `eslint.config.mjs`, `.prettierrc`, `.prettierignore` (repository root for the last three).
+- `apps/api/jest.config.cjs`, `eslint.config.mjs`, `.prettierrc`, `.prettierignore` (repository root for the last three).
 - `apps/api/test/`: smoke test, hermetic CI test, Bruno environments test, `.prettierignore` test.
-- `apps/api/test/support/fake-mcp-server.mjs` and its test.
+- `apps/api/test/support/fake-mcp-server.cjs` and its test.
 - `supabase/config.toml`.
 - `bruno/nestjs-ai-provider-finance/environments/`: new `local-stack.bru`; rename the current `local.bru` to `demo.bru`.
 - `bruno/setup-local.sh`: `users` creates the two local users through the sign-up endpoint; `fixtures` creates one transaction and prints the two ids that the reclassify request needs.
