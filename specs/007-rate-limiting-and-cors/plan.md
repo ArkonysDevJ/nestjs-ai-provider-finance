@@ -24,7 +24,7 @@
 
 ## Starting values, and why
 
-They are proposed for approval and are the ones in `apps/api/deploy/service.yaml`. The limiter counts per client address, in memory and per instance, and the service runs with at most two instances, so the real limit can be up to twice the number set.
+They were approved by the maintainer on 2026-11-11 and are the ones in `apps/api/deploy/service.yaml`. The limiter counts per client address, in memory and per instance, and the service runs with at most two instances, so the real limit can be up to twice the number set.
 
 | Variable | Value | Why |
 | --- | --- | --- |
@@ -51,6 +51,18 @@ It confirms that the address the limiter counts by is the real client and not th
 6. Read what Cloud Run recorded for the client: the `httpRequest.remoteIp` and the status of the requests of step 3, with `gcloud logging read` on the service `ai-finance-api`. The address must be the one of step 1, and the `429` must appear.
 
 What to record: the address of step 1 (the last octet can be masked), the sequences of status codes of steps 3 to 5, the address and the statuses read in step 6, and the name of the revision. A result that differs from the expected ones is a reason to change the hop count in `service.yaml`, not the code.
+
+## Result of the measurement
+
+Run on 2026-11-11 from Cloud Shell against the deployed API, after the change was deployed. Nothing in it wrote data.
+
+- Step 2: the revision in service had the five variables with the approved values (`CORS_ORIGINS` the production origin of the web app, window 60, maximum 120, health maximum 30, hops 1).
+- Step 3: 40 requests with forged first entries answered `200` thirty times and then `429` ten times. Forged entries did not give a new bucket.
+- Step 4: while Cloud Shell was blocked, a request to `/v1/health` from another network (a browser, with another address) answered `200`, five seconds after the last `429` and inside the same window. The service tells clients apart, so the hop count of 1 counts a client address and not a shared proxy.
+- Step 5: a second run of step 3, more than 60 seconds after the first, answered `200` thirty times again and then `429`. The window ends.
+- Step 6: Cloud Run recorded `136.108.212.x` as the client address of the whole burst, with the `200` and `429` statuses in the order above. It is not the address that `ifconfig.me` returned in step 1 (`34.26.223.x`): Cloud Shell reaches Google services through a different route than the public internet. What the check needs is one stable address for the client and a different one for the other client, and both held.
+
+The name of the revision was not recorded. The hop count of 1 stays.
 
 ## What changed while implementing
 

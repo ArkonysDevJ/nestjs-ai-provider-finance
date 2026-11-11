@@ -1,6 +1,6 @@
 # Spec 007: rate limiting and CORS
 
-Status: in progress. The limiter and CORS are implemented in the pull request and are not deployed. The starting values of the limiter are proposed there and wait for the maintainer's approval, and the live measurement (AC-9) comes after the deployment.
+Status: implemented. The limiter and CORS are deployed. The maintainer approved the starting values, and the live measurement of the client address (AC-9) was run on 2026-11-11; its result is in the plan.
 
 ## Goal
 
@@ -56,7 +56,7 @@ The rate limit counts each client separately behind the Cloud Run proxy, cannot 
 - **AC-8.** An origin that is not listed gets no CORS headers; with no variable, no origin is allowed; a listed origin is allowed.
   - Test: `apps/api/src/cors.spec.ts` (AC-8).
 - **AC-9.** In Cloud Run, the address that the service sees for a client is measured and recorded, to confirm the hop count. Live check by the maintainer.
-  - Test: manual check recorded in the pull request (AC-9).
+  - Test: manual check, recorded in the plan under "Result of the measurement" (AC-9).
 - **AC-10.** `apps/api/deploy/service.yaml` declares the four limiter variables and `CORS_ORIGINS`, so that production never runs without a limiter or with open CORS by omission.
   - Test: `apps/api/test/service-config.spec.ts` (AC-10).
 
