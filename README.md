@@ -124,7 +124,7 @@ Requires [Ollama](https://ollama.com/) running locally with a model pulled (defa
 
 ## API
 
-All endpoints require `Authorization: Bearer <supabase-jwt>` and live under `/v1`.
+All endpoints live under `/v1`. Every one requires `Authorization: Bearer <supabase-jwt>` except `GET /v1/health`, which is open for the uptime monitor and the keep-alive workflow.
 
 | Method | Path                          | Description                                      |
 |--------|-------------------------------|---------------------------------------------------|
@@ -134,7 +134,7 @@ All endpoints require `Authorization: Bearer <supabase-jwt>` and live under `/v1
 | POST   | `/transactions/:id/reclassify` | Manual override: the database marks the transaction as manual and clears `ai_classified`, `ai_provider` and `ai_model`; rejects a category whose `applies_to` doesn't match the transaction's type (400). Naming the category the transaction already has is an explicit no-op, not a reclassification: its classification stays as it was |
 | GET    | `/transactions/summary?month=YYYY-MM` | `byCategory` scoped to that month (default: current month); `byMonth` is the full historical series, unscoped. Computed by a database function, so it is exact to the cent whatever the number of rows; `totalExpense` and `totalIncome` are decimal strings (`"1234.50"`) and `transactionCount` is a number |
 
-The category catalog is type-aware (`applies_to`: `expense` \| `income` \| `both`, see `supabase/migrations/003_category_types.sql`): 7 expense categories, 3 income categories (Salario, Ingreso extra, Reembolso), and "Otros" as the universal fallback for either. This isn't cosmetic — it's enforced on both sides: the AI prompt only offers the categories valid for the transaction's type (`categoryNamesForType()` in `ai-provider.interface.ts`), and `POST /transactions/:id/reclassify` rejects a mismatched category server-side even if a client bypasses the UI filter.
+The category catalog is type-aware (`applies_to`: `expense` \| `income` \| `both`, see `supabase/migrations/20260729130000_003_category_types.sql`): 7 expense categories, 3 income categories (Salario, Ingreso extra, Reembolso), and "Otros" as the universal fallback for either. This isn't cosmetic — it's enforced on both sides: the AI prompt only offers the categories valid for the transaction's type (`categoryNamesForType()` in `ai-provider.interface.ts`), and `POST /transactions/:id/reclassify` rejects a mismatched category server-side even if a client bypasses the UI filter.
 
 **Rate limiting:** two independent layers. A limiter of the project's own runs first, before authentication, and counts the requests of each client address in a fixed window, in memory and per instance (the counters start again with each instance); `/v1/health` has its own, higher threshold, so the uptime monitor is never limited by the traffic of the API. The thresholds are set in `apps/api/deploy/service.yaml`. Behind Cloud Run every client reaches the service through the platform proxy, so the address is read from `X-Forwarded-For` counting from the right: with one proxy in front (`RATE_LIMIT_TRUSTED_PROXY_HOPS=1`) it is the last entry, which the proxy wrote, and the entries to its left, written by the client, are ignored. If any of the four `RATE_LIMIT_*` variables is missing the limiter is inactive and the application says so at startup. The second layer is 20 requests / 5 minutes per authenticated user on `POST /transactions` (`UserThrottlerGuard`): this endpoint calls the AI provider on every call — Gemini in production, a direct per-request cost — and the account most exposed to it is the public demo login above, not just a theoretical abuse case. Tracking by `user.id` rather than IP avoids penalizing legitimate users behind a shared NAT/proxy, but a per-user limit alone resets to zero for every freshly created account, so the per-address layer bounds the requests of one address across all the accounts it uses. It does not stop the creation of accounts: signup is self-service, directly against Supabase Auth, and does not go through this backend. Exceeding either limit returns `429` with a `Retry-After` header. Verified end-to-end: 21 consecutive `POST /transactions` calls against the demo account, request 21 returned `429` with a translated, human-readable message in the UI (`transactionForm.rateLimited`) instead of the raw backend response body.
 
@@ -178,7 +178,7 @@ Other local classifications observed: "Cita pediátrica" → Salud, "Uber al hos
 - A working, testable application (backend, frontend, and API tests against a real database) — not just a design exercise
 - Both providers verified end-to-end against real infrastructure (Gemini API and a local Ollama model through a real MCP server, not a REST stub) — see "Gemini vs. local" above for the measured quality trade-off, not just the architectural claim
 - RLS isolation proven independently at two layers below the application: direct PostgREST requests with a real JWT (bypassing the backend entirely) and a pgTAP suite at the SQL level — both covering cross-user reads, insert/update/delete authorship spoofing, and a positive control so "isolated" isn't confused with "everything denied". `FORCE ROW LEVEL SECURITY` closes the table-owner bypass on every table. See "Testing" above.
-- Full ES/EN UI localization (`react-i18next`) with a visible language switcher, choice persisted in `localStorage`. **Spanish is the default, English is the opt-in toggle** — this is a deliberate choice, not an oversight: this project's real initial market is Latin America, so the UI defaults to the language its actual first users speak. The 8 transaction categories and the `ai_provider` values are never translated — they're persisted/compared domain data, not UI copy.
+- Full ES/EN UI localization (`react-i18next`) with a visible language switcher, choice persisted in `localStorage`. **Spanish is the default, English is the opt-in toggle** — this is a deliberate choice, not an oversight: this project's real initial market is Latin America, so the UI defaults to the language its actual first users speak. The 11 categories and the `ai_provider` values are never translated — they're persisted/compared domain data, not UI copy.
 
 ## Live demo
 
@@ -186,7 +186,7 @@ Other local classifications observed: "Cita pediátrica" → Salud, "Uber al hos
 
 **Backend:** https://ai-finance-api-834290807468.southamerica-east1.run.app
 
-Demo credentials (read-only account, no real data):
+Demo credentials (public account, no real data; it can create and reclassify transactions, cannot delete them, and its sign-in identity is protected):
 
 - Email: `demo@arkonysdevj.com`
 - Password: `arkonys2026`
