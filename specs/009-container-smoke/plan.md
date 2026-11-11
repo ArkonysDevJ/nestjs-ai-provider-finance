@@ -26,4 +26,11 @@ Nothing else changes. The Dockerfile and the code of the API stay as they are.
 
 ## Recorded results
 
-To be filled with the runs of the pull request: the green run, the red run of AC-5, and the time that the step adds.
+Runs of 2026-11-11, in CI:
+
+- **Green run.** On the pull request of this spec, [run 42963434704](https://github.com/ArkonysDevJ/nestjs-ai-provider-finance/actions/runs/42963434704): "Container smoke test" passed (`/v1/categories` answered 401 and `/v1/health` answered 503) and every other step passed. The run after the correction of this spec also passed.
+- **Time added.** The step takes 2 seconds (from 05:08:52 to 05:08:54 in that run), and its test adds under a second to the unit tests. The whole `ci` job took 3 minutes 34 seconds; the runs of `main` that day took between 3 and 4 minutes, so the change is inside the noise.
+- **Negative run, CommonJS manifest (AC-5).** [Run 42964318505](https://github.com/ArkonysDevJ/nestjs-ai-provider-finance/actions/runs/42964318505): every step before the smoke test passed, the smoke test failed after 2 seconds with "The container stopped before it answered" and the container log ended in `SyntaxError: Cannot use import statement outside a module`. The steps after it were skipped.
+- **Negative run, missing dependency.** [Run 42964321509](https://github.com/ArkonysDevJ/nestjs-ai-provider-finance/actions/runs/42964321509): the smoke test failed after 1 second, and the log showed `ERR_MODULE_NOT_FOUND: Cannot find package '@supabase/supabase-js'`. Build, lint and unit tests had passed, which is the case the step is for.
+- **A missing manifest does not break the start.** [Run 42963465843](https://github.com/ArkonysDevJ/nestjs-ai-provider-finance/actions/runs/42963465843): the runtime stage without `apps/api/package.json` passed the smoke test. Node 24.22.1 detects the module syntax and starts the code as an ES module, with a warning. The first negative run was planned with that change and it did not fail, which is why the spec now describes what Node does and why the AC-5 run uses a CommonJS manifest. The same three outcomes were reproduced locally with Node 24.22.1.
+- **The logs do not show the environment of the container.** The failing runs print the last lines of the container log, and the step does not print the variables. The `env:` block that Actions prints for each step belongs to the job, not to the container.

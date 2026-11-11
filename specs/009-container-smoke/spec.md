@@ -1,6 +1,6 @@
 # Spec 009: smoke test of the container in CI
 
-Status: in progress. The step is written and waits for its first runs in CI.
+Status: implemented. The step runs in CI since 2026-11-11. The green run, the two negative runs that fail and the run that shows a missing manifest does not break the start are recorded in the plan.
 
 ## Goal
 
