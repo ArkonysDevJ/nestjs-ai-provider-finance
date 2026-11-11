@@ -16,7 +16,12 @@ describe('AC-4: the CI workflow is hermetic', () => {
   });
 
   it('AC-4: holds no Gemini key', () => {
-    expect(workflow).not.toMatch(/GEMINI_API_KEY/i);
+    // The startup of the production image needs a value for the key. The only
+    // one is the placeholder of the container smoke test (spec 009), whose
+    // container has no network.
+    for (const mention of workflow.match(/GEMINI_API_KEY\S*/gi) ?? []) {
+      expect(mention).toMatch(/^GEMINI_API_KEY=placeholder-/);
+    }
     expect(workflow).not.toMatch(/generativelanguage/i);
   });
 
