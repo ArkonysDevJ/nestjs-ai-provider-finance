@@ -12,6 +12,9 @@ An npm workspaces monorepo that demonstrates an `AIProvider` abstraction (Gemini
 - `bruno/`: HTTP request collection for the API.
 - `finance-classifier-mcp/`: optional Python MCP server used by the local provider, for development only.
 - `specs/`: one folder per change, with `spec.md`, `plan.md` and `tasks.md`.
+- `scripts/`: the acceptance-criteria coverage check and the data checks of the migrations.
+
+`ARCHITECTURE.md` explains how the parts fit together and why.
 
 Runtime: Node.js >= 24.22.1. Production: Google Cloud Run (API) and Vercel (web), database on hosted Supabase.
 
@@ -30,7 +33,8 @@ Test and quality commands:
 
 | Task | Command |
 | --- | --- |
-| Unit tests | `npm test` |
+| Unit tests of the API | `npm test` |
+| Unit tests of the web app modules | `npm run test:web` (the test runner of Node, no extra dependency) |
 | Lint, format check | `npm run lint`, `npm run format:check` |
 | Start the local database stack | `supabase start` (needs Docker) |
 | Database tests | `supabase test db` |
@@ -45,6 +49,7 @@ If a command in this table fails or is missing, say so in your pull request. Do 
 - `apps/api/src/ai/`: the `AIProvider` port and its implementations.
 - `apps/api/src/transactions/`, `categories/`, `health/`: HTTP modules.
 - `apps/api/src/common/`: guards, decorators and the error mapping (`errors/`).
+- `apps/web/src/lib/`: the API client and the pure modules for money (`money.ts`) and paging (`paging.ts`), which have tests.
 - `apps/api/deploy/`: Cloud Run service definition and the setup runbook.
 - `supabase/migrations/`: schema history. `supabase/tests/database/`: pgTAP tests.
 - `.github/workflows/`: CI, deployment and keep-alive workflows.
@@ -56,6 +61,8 @@ If a command in this table fails or is missing, say so in your pull request. Do 
 - Some existing files start with a header that has an identifier, a `@version` line and a `@changelog` line. Keep that format and update the version and changelog when you change such a file. New files do not need a header.
 - Never use `any`, `@ts-ignore` or equivalent escapes. Keep TypeScript strict.
 - Every error of Supabase goes through `mapBackendError` (`apps/api/src/common/errors/`). A response never carries a message of the database, the REST layer or Auth. Reads go through `readWithRetry`; writes are never retried.
+- Amounts of money travel as decimal text. The API does no arithmetic on them: the database function that computes the summary does, and the web app reads them into whole cents.
+- Reclassifying a transaction to the category it already has is an explicit no-op, not a reclassification: the database derives the manual state only when `category_id` changes.
 - Migrations are new files in `supabase/migrations/`. Never edit a migration that already exists. Every new table or function declares explicit `REVOKE` and `GRANT` statements and has a pgTAP test.
 - Dependencies: do not add packages that run install scripts. State every new dependency in the pull request.
 
@@ -64,8 +71,9 @@ If a command in this table fails or is missing, say so in your pull request. Do 
 - Row Level Security with the publishable key is the barrier. The API acts with the signed-in user's JWT.
 - There is no `service_role` key in this project and none must be added.
 - Secrets are never committed. `.env.example` files hold placeholder values only.
-- The provenance of a classification (`ai_*` columns and, after its spec, `classification_*`) is recorded by the API. At creation, the owner of a row can forge it; later transitions are enforced by the database.
-- The demo account is public. Anyone can read and edit the demo's transaction data.
+- The provenance of a classification (the `ai_*` and `classification_*` columns) is recorded by the API. At creation, the owner of a row can forge it; later transitions are enforced by the database, and a client can update `category_id` only.
+- The demo account is public. Anyone can read and edit the demo's transaction data; its password, e-mail and phone are protected by a database trigger.
+- Client roles have no `DELETE` privilege on any table, and there is no delete endpoint.
 
 ## Working with specs
 

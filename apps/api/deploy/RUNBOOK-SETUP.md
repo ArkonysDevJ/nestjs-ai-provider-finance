@@ -445,24 +445,32 @@ It has the form
 
 ## 11. Cost controls
 
-1. **Daily quota for Gemini.** Set a daily cap on `GenerateContent` requests of
-   the Generative Language API for this project, with the value chosen by the
-   owner. Console path: IAM and Admin, Quotas and System Limits, filter by
-   "Generative Language API".
-   - **Record the dimension of the quota** (per project, per model, per user or
-     per region) and the exact quota name used.
-   - **If the quota is per model**, set the override (a) on the model that
-     appears in the Generative Language API metrics for the requests already
-     made (the last 30 days), and also (b) on every model of the flash family
-     that the quota list shows, because the code requests the alias
-     `gemini-flash-latest`, not a fixed model.
-   - **Verify in the console** that the effective value shows the override.
-     Do not test it by exhausting it.
-   - The alias can change to a different model without notice. Until the
-     application pins a model, review the quota assignment whenever the model
-     shown in the metrics changes.
-   - *Not verified:* whether a quota override applies to a key issued from AI
+1. **Gemini spend ceilings.** The code pins an exact model (`GEMINI_MODEL` in
+   `service.yaml`), not an alias, and the Gemini key is paid with prepaid
+   credit. These are the controls that bound the cost, from the hardest ceiling
+   to the softest. The owner chooses every value, and every value is recorded
+   here before the first real image is deployed.
+   - **Prepaid balance, with automatic reload off.** The balance is the ceiling
+     of what the key can spend. When it reaches zero the provider answers `402`
+     and every classification is recorded as a fallback with the reason
+     `quota_exceeded` until credit is added; nothing else breaks. Keep the
+     automatic reload off, so that no abuse can spend more than the balance.
+     Record the amount of each top-up and who tops it up.
+   - **Monthly spend cap in AI Studio.** Set it at the level chosen by the
+     owner. Record the value, what the provider does when the cap is reached,
+     and how it is lifted.
+   - **Requests-per-minute limit per model (optional).** If AI Studio offers it
+     for the pinned model, a limit bounds a burst, not the month. Record the
+     model it applies to. A limit belongs to a model name: when
+     `GEMINI_MODEL` changes, set it again on the new model.
+   - **Verify in the console** that each setting shows its value. Do not test a
+     ceiling by exhausting it.
+   - *Not verified:* whether a per-model limit applies to a key issued from AI
      Studio in this project. Record what the console shows.
+   - These controls replace the daily quota of the Generative Language API that
+     earlier versions of this runbook asked for. The rate limit of the API
+     itself (`specs/007-rate-limiting-and-cors`) bounds the calls that reach the
+     provider; it does not replace a ceiling on the spend.
 2. **Project spending cap.** In the console (Billing, Budgets and alerts, or the
    caps feature shown under "Budgets and caps"), create a cap at project level
    with the threshold chosen by the owner. Because Cloud Run and the Gemini key
@@ -493,7 +501,7 @@ token.
 | Secret names and the pinned version number of each (section 6.4) | `service.yaml` |
 | Repository id and owner id (section 1) | for the audit record |
 | Whether section 8 (public invocation) succeeded, with the `200` check | go / no-go |
-| Results recorded in section 11 (quota dimension and override, cap, who is notified, how it is lifted) | for the audit record |
+| Results recorded in section 11 (balance policy, monthly cap of AI Studio, per-model limit if used, project cap, who is notified, how it is lifted) | for the audit record |
 | `diff ~/iam-before.json ~/iam-after.json` and the AI Studio service account findings (section 2.5) | for the audit record |
 
 ## 13. Verification summary
@@ -508,8 +516,8 @@ token.
 - [ ] The provider condition holds the repository ids, the branch and the workflow file.
 - [ ] The `workloadIdentityUser` binding is on a `principalSet` filtered by `repository_id`.
 - [ ] Both secrets have a version, and both version numbers are recorded.
-- [ ] Quota and project cap set and recorded (section 11) **before the first
-      real image is merged and deployed**.
+- [ ] Gemini spend controls and project cap set and recorded (section 11)
+      **before the first real image is merged and deployed**.
 - [ ] Final IAM comparison done:
 
   ```bash
@@ -523,36 +531,7 @@ token.
   service agents (`service-<PROJECT_NUMBER>@…`) caused by enabling the APIs are
   expected; any other new account or role is reported.
 
-## 14. Undo
-
-Everything in this runbook is reversible without touching Supabase:
-
-```bash
-gcloud run services delete "$SERVICE" --region="$REGION"
-gcloud artifacts repositories delete "$AR_REPO" --location="$REGION"
-gcloud secrets delete "$SECRET_GEMINI"
-gcloud secrets delete "$SECRET_SUPABASE"
-gcloud iam workload-identity-pools delete "$WIF_POOL" --location=global
-gcloud iam service-accounts delete "$DEPLOY_SA_EMAIL"
-gcloud iam service-accounts delete "$RUNTIME_SA_EMAIL"
-```
-
-The Gemini quota override and the project spending cap (section 11) are not
-removed by these commands. They survive the undo: revert them by hand in the
-console if they must go.
-
-The keys used by the service are revoked separately, outside `gcloud`:
-
-- the **Gemini** key, in the Google Cloud console under APIs and Services,
-  Credentials, or in AI Studio (only if nothing else uses it);
-- the **Supabase publishable** key created for the service (for example
-  `ai-finance-api-cloudrun`), in the Supabase dashboard.
-
-Deleted workload identity pools and service accounts stay in soft-delete for
-about 30 days, and during that time their ID cannot be reused. To run the setup
-again after an undo, use different names or restore them with `undelete`.
-
-## 15. After every migration applied to the hosted database
+## 14. After every migration applied to the hosted database
 
 Mandatory, read-only. Objects created by the platform role `supabase_admin` can
 start with privileges for the client roles, and the migrations cannot change
@@ -576,3 +555,32 @@ and `UPDATE` on `transactions`. After the contract stage, `UPDATE` on
 `information_schema.role_column_grants`. Nothing for `anon`, `service_role` or
 `PUBLIC`, and no other table. If any privilege outside the matrix appears, stop
 and report it. Do not revoke it as part of the same step.
+
+## 15. Undo
+
+Everything in this runbook is reversible without touching Supabase:
+
+```bash
+gcloud run services delete "$SERVICE" --region="$REGION"
+gcloud artifacts repositories delete "$AR_REPO" --location="$REGION"
+gcloud secrets delete "$SECRET_GEMINI"
+gcloud secrets delete "$SECRET_SUPABASE"
+gcloud iam workload-identity-pools delete "$WIF_POOL" --location=global
+gcloud iam service-accounts delete "$DEPLOY_SA_EMAIL"
+gcloud iam service-accounts delete "$RUNTIME_SA_EMAIL"
+```
+
+The Gemini spend controls and the project spending cap (section 11) are not
+removed by these commands. They survive the undo: revert them by hand in the
+console if they must go.
+
+The keys used by the service are revoked separately, outside `gcloud`:
+
+- the **Gemini** key, in the Google Cloud console under APIs and Services,
+  Credentials, or in AI Studio (only if nothing else uses it);
+- the **Supabase publishable** key created for the service (for example
+  `ai-finance-api-cloudrun`), in the Supabase dashboard.
+
+Deleted workload identity pools and service accounts stay in soft-delete for
+about 30 days, and during that time their ID cannot be reused. To run the setup
+again after an undo, use different names or restore them with `undelete`.
