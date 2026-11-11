@@ -37,6 +37,8 @@ COPY apps/web/package.json apps/web/
 # changes nothing functionally and runs no third-party code during the build.
 RUN npm ci --omit=dev --omit=optional --workspace=apps/api --ignore-scripts \
   && npm cache clean --force
+# Throwaway change, never merged: a runtime dependency is missing from the runtime stage.
+RUN find /app -type d -path '*/node_modules/@supabase' -prune -exec rm -rf {} +
 # Compiled JavaScript only. The Python MCP classifier is not copied: it runs as
 # its own service and the API reaches it over HTTP via LOCAL_AI_ENDPOINT.
 COPY --from=build /app/apps/api/dist apps/api/dist
