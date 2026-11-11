@@ -9,7 +9,7 @@ A change that stops the API container from starting as an ES module is caught in
 ## Current state
 
 - The API is an ES module since spec 002: `"type": "module"` in `apps/api/package.json`, `nodenext`, `.js` suffixes on relative imports. That changed how the process starts, not only how it is built.
-- The image only starts correctly if the runtime stage has `apps/api/package.json` with `"type": "module"` and runs `node dist/main.js`. If the manifest is missing, Node reads `dist/main.js` as CommonJS and stops at the first `import`.
+- The runtime stage copies `apps/api/package.json`, which declares `"type": "module"`, and runs `node dist/main.js`. Node 24 would also run the code as an ES module if the manifest were missing, because it detects the module syntax and only prints a warning (checked, see the plan). It cannot if the manifest says otherwise: with `"type": "commonjs"` the process stops at the first `import`. A missing dependency or a wrong entry file stops it too.
 - `ci` builds the image (`docker build -t ai-finance-api:ci .`) and does not run it. The first run of the container is the health check of the deploy workflow, after the commit reached `main`.
 - In production the container runs as an ES module on Cloud Run and answers its health check, so the risk is not an open failure but a late one.
 
@@ -44,7 +44,7 @@ A change that stops the API container from starting as an ES module is caught in
   - Test: `apps/api/test/ci-workflow.spec.ts` (AC-3).
 - **AC-4.** The container is removed whether the step passes or fails.
   - Test: `apps/api/test/ci-workflow.spec.ts` (AC-4).
-- **AC-5.** The step fails when the ES module start is broken. A run on a branch that is not merged, where the runtime stage has no `apps/api/package.json`, is linked in the pull request.
+- **AC-5.** The step fails when the ES module start is broken. A run on a branch that is not merged, where the runtime stage declares the code as CommonJS (`"type": "commonjs"` in `apps/api/package.json`), is linked in the pull request.
   - Test: manual check recorded in the pull request (AC-5).
 
 ## Out of scope
