@@ -1,9 +1,10 @@
 # Checks the code from a clean checkout: lint, format, build, unit tests, the
 # database tests (pgTAP) and the HTTP tests (Bruno) against a local database
-# stack, and the container image. It also reports the state of the production
-# dependencies. Nothing here touches the deployed demo, its database or any
-# external service: the API runs with the local provider against a fake
-# classifier on loopback, so no key and no network call to Google are needed.
+# stack, and the container image, which it also starts with no network. It also
+# reports the state of the production dependencies. Nothing here touches the
+# deployed demo, its database or any external service: the API runs with the
+# local provider against a fake classifier on loopback, so no key and no network
+# call to Google are needed.
 #
 # The job named `ci` builds and checks the code. The job named `guard` checks who
 # wrote the commits, what the commit messages, the pull request text and the
@@ -146,9 +147,52 @@ jobs:
           done
 
       # The deploy workflow builds this same Dockerfile, so it must keep
-      # building. Here the image is only built, not pushed or run.
+      # building. Here the image is built and not pushed; the next step starts it.
       - name: Build the container image
         run: docker build -t ai-finance-api:ci .
+
+      # Starts the image that was just built and checks that the process boots as
+      # an ES module and answers HTTP. Until this step, nothing ran the container
+      # before a deploy. The container has no network (`--network none`), so
+      # nothing can leave it: the database address is a loopback port where
+      # nothing listens and every key is a placeholder. What is checked is the
+      # process, not the database: with no database `/v1/health` must answer 503,
+      # and a route that needs a token must answer 401.
+      - name: Container smoke test
+        run: |
+          set -euo pipefail
+          name=api-smoke
+          trap 'docker rm -f "${name}" >/dev/null 2>&1 || true' EXIT
+          docker run -d --name "${name}" --network none \
+            -e SUPABASE_URL=http://127.0.0.1:9 \
+            -e SUPABASE_ANON_KEY=placeholder-anon-key \
+            -e GEMINI_API_KEY=placeholder-gemini-key \
+            -e GEMINI_MODEL=gemini-3.8-flash \
+            -e CORS_ORIGINS=http://localhost:5173 \
+            ai-finance-api:ci >/dev/null
+          probe='fetch("http://127.0.0.1:3000" + process.argv[1]).then((r) => console.log(r.status)).catch(() => console.log("none"))'
+          status() { docker exec "${name}" node -e "${probe}" "$1" 2>/dev/null || echo none; }
+          fail() {
+            echo "::error::$1"
+            echo "--- container logs (last 100 lines)"
+            docker logs --tail 100 "${name}" 2>&1 || true
+            exit 1
+          }
+          answered=0
+          for _ in $(seq 1 30); do
+            if [ "$(docker inspect -f '{{.State.Running}}' "${name}")" != "true" ]; then
+              fail "The container stopped before it answered."
+            fi
+            if [ "$(status /v1/categories)" != "none" ]; then answered=1; break; fi
+            sleep 1
+          done
+          [ "${answered}" = "1" ] || fail "The container did not answer within 30 seconds."
+          categories="$(status /v1/categories)"
+          health="$(status /v1/health)"
+          echo "GET /v1/categories answered ${categories} (expected 401)"
+          echo "GET /v1/health answered ${health} (expected 503)"
+          [ "${categories}" = "401" ] || fail "/v1/categories did not answer 401."
+          [ "${health}" = "503" ] || fail "/v1/health did not answer 503."
 
       # Data steps of spec 003 on sample rows: the backfill of the expand
       # migration and the fill of the contract migration. It resets the local
