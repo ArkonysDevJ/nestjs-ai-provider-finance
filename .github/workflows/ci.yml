@@ -75,7 +75,7 @@ jobs:
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         with:
-          version: 2.101.0
+          version: 3.1.0
 
       # Only the services the project uses; the others would only slow the job.
       - name: Start local Supabase

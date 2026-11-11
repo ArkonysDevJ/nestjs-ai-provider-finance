@@ -30,7 +30,7 @@ enable_anonymous_sign_ins = false
 minimum_password_length = 6
 
 [auth.email]
-enable_signup = true
+enabled = true
 double_confirm_changes = true
 # Differs from the hosted project, which requires confirmation. Local users are
 # created by `bruno/setup-local.sh` and must be able to sign in without a
