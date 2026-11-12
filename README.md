@@ -158,7 +158,9 @@ Both `FORCE ROW LEVEL SECURITY` (closing the table-owner bypass) and this full n
 
 ## Gemini vs. local — a real comparison, not a claim
 
-7 attempts through `AI_PROVIDER=local` against a live GTX 1650 + Ollama setup: 2 failed on infrastructure (a connection refused because Ollama wasn't running, then a VRAM OOM — both diagnosed and documented above, neither a code bug), 5 produced real classifications end-to-end through the MCP server.
+Measured by the maintainer on 29 July 2026: `qwen2.5:3b` on Ollama on a GTX 1650 (4 GB), against Gemini on the same date. The exact Gemini model version was not recorded at the time (the `ai_model` column did not exist yet).
+
+7 attempts through `AI_PROVIDER=local`: 2 failed on infrastructure (a connection refused because Ollama wasn't running, then a VRAM OOM — both diagnosed and documented above, neither a code bug), 5 produced real classifications end-to-end through the MCP server. The count is the maintainer's observation of that day; the failed attempts left no rows.
 
 The clearest data point: the exact same transaction, run through both providers back to back.
 
@@ -169,6 +171,8 @@ The clearest data point: the exact same transaction, run through both providers 
 Same input, two different — both individually defensible — answers, persisted per-row via `ai_provider`. The local model latched onto "mensual"/recurring-bill phrasing (the same pattern that correctly classifies "Pago mensual de línea móvil" as Vivienda) instead of parsing the subject. That's not a bug to fix; it's the actual, measured quality trade-off between a production API and a 3B model running on a 4GB card — which is the whole point of persisting `ai_provider`: you can see this in the data, not just take it on faith.
 
 Other local classifications observed: "Cita pediátrica" → Salud, "Uber al hospital" → Transporte (prioritized the ride over the destination's purpose), "Curso online de nutrición" → Educación (prioritized the format over the topic), "Compra de útiles escolares" → Educación.
+
+**Evidence.** The five local classifications and the Gemini one of the case above are persisted as rows in the demo database, with their `ai_provider` and the date 29 July 2026, so they can be queried there. Since the classification columns were added in November 2026, those rows have `classification_status = legacy` and keep their `ai_provider`. On 10 November 2026, with the model pinned in production (`gemini-3.8-flash`), an equivalent case ("Pago mensual de gimnasio") was classified as Salud again.
 
 ## What this project demonstrates
 

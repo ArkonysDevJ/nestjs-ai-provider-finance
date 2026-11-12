@@ -158,7 +158,9 @@ Tanto `FORCE ROW LEVEL SECURITY` (cerrando el bypass del dueño de la tabla) com
 
 ## Gemini vs. local — una comparación real, no una afirmación
 
-7 intentos vía `AI_PROVIDER=local` contra una GTX 1650 + Ollama real: 2 fallaron por infraestructura (una conexión rechazada porque Ollama no estaba corriendo, luego un OOM de VRAM — ambos diagnosticados y documentados arriba, ninguno un bug de código), 5 produjeron clasificaciones reales de punta a punta a través del servidor MCP.
+Medido por el mantenedor el 29 de julio de 2026: `qwen2.5:3b` en Ollama sobre una GTX 1650 (4 GB), contra Gemini en la misma fecha. La versión exacta del modelo de Gemini no se registró entonces (la columna `ai_model` aún no existía).
+
+7 intentos vía `AI_PROVIDER=local`: 2 fallaron por infraestructura (una conexión rechazada porque Ollama no estaba corriendo, luego un OOM de VRAM — ambos diagnosticados y documentados arriba, ninguno un bug de código), 5 produjeron clasificaciones reales de punta a punta a través del servidor MCP. La cuenta es la observación del mantenedor de ese día; los intentos fallidos no dejaron filas.
 
 El dato más claro: la misma transacción exacta, corrida por ambos proveedores una tras otra.
 
@@ -169,6 +171,8 @@ El dato más claro: la misma transacción exacta, corrida por ambos proveedores 
 Mismo input, dos respuestas distintas — ambas individualmente defendibles — persistidas por fila vía `ai_provider`. El modelo local se enganchó con el patrón "mensual"/factura recurrente (el mismo patrón que correctamente clasifica "Pago mensual de línea móvil" como Vivienda) en vez de analizar el sujeto. Eso no es un bug que arreglar; es el trade-off real y medido de calidad entre una API de producción y un modelo de 3B corriendo en una tarjeta de 4GB — que es todo el punto de persistir `ai_provider`: puedes verlo en los datos, no solo tomarlo como un acto de fe.
 
 Otras clasificaciones locales observadas: "Cita pediátrica" → Salud, "Uber al hospital" → Transporte (priorizó el viaje sobre el propósito del destino), "Curso online de nutrición" → Educación (priorizó el formato sobre el tema), "Compra de útiles escolares" → Educación.
+
+**Evidencia.** Las cinco clasificaciones locales y la de Gemini del caso anterior están persistidas como filas en la base de datos del demo, con su `ai_provider` y la fecha 29 de julio de 2026, así que se pueden consultar ahí. Desde que se agregaron las columnas de clasificación, en noviembre de 2026, esas filas tienen `classification_status = legacy` y conservan su `ai_provider`. El 10 de noviembre de 2026, con el modelo fijado en producción (`gemini-3.8-flash`), un caso equivalente ("Pago mensual de gimnasio") volvió a clasificarse como Salud.
 
 ## Qué demuestra este proyecto
 
