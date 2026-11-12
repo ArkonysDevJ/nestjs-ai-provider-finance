@@ -48,7 +48,7 @@ Make the project testable from a clean clone. Unit tests, database tests and HTT
   - Test: CI step "Database tests".
 - **AC-3.** The Bruno collection runs in CI against the local stack and passes with the same requests as before, apart from the environment names.
   - Test: CI step "Integration tests (Bruno)".
-- **AC-4.** No workflow step contacts the hosted project or Google: the workflow contains no hosted project URL, no hosted key and no Gemini key, and the API runs with the local provider against a loopback server.
+- **AC-4.** No workflow step contacts the hosted project or Google: the workflow contains no hosted project URL, no hosted key and no Gemini key (the container smoke test of spec 009 sets a placeholder value, in a container with no network), and the API runs with the local provider against a loopback server.
   - Test: `apps/api/test/hermetic-ci.spec.ts` (AC-4) reads `.github/workflows/ci.yml`.
 - **AC-5.** No Bruno environment whose name starts with `local` points to a non-loopback host.
   - Test: `apps/api/test/bruno-environments.spec.ts` (AC-5).
